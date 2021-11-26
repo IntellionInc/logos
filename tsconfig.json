@@ -1,0 +1,21 @@
+{
+	"compilerOptions": {
+		"experimentalDecorators": true,
+		"strictPropertyInitialization": false,
+		"target": "ES2016",
+		"module": "commonjs",
+		"declaration": true,
+		"outDir": "./lib",
+		"moduleResolution": "Node",
+		"emitDecoratorMetadata": true,
+		"removeComments": true,
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+		"baseUrl": "./",
+		"incremental": true,
+		"resolveJsonModule": true,
+		"esModuleInterop": true
+	},
+	"include": ["./src", "./test", "./index.ts", "./templates"],
+	"exclude": ["./node_modules", "./**/__tests__/*"]
+}
