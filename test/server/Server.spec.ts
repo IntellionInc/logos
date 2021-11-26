@@ -123,7 +123,7 @@ describe("Server: ", () => {
 					Object.assign(uut, { connectionManager: mockConnectionManager });
 					mockServerListen = jest
 						.fn()
-						.mockImplementation((port: number, callback: (...args: any[]) => any) => {
+						.mockImplementation((port: string, callback: (...args: any[]) => any) => {
 							callbackFn = callback;
 							return new Promise(resolve => resolve(callback));
 						});
@@ -131,6 +131,7 @@ describe("Server: ", () => {
 					server.listen = mockServerListen;
 					Object.assign(uut, { server });
 				});
+
 				it("should listen on the provided port, and set yield", async () => {
 					await uut._serve();
 					expect(uut.yield).toBe(mockConnectionManager);
