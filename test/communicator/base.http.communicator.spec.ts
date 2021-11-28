@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BaseHTTPCommunicator } from "src/communicator/base.http.communciator";
+import { BaseHTTPCommunicator } from "src/communicator";
 
 describe("BaseHTTPCommunicator", () => {
 	let mockErrorHandler: any;

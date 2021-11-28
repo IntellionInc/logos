@@ -1,9 +1,9 @@
 import {
+	BaseController,
 	BaseInterceptor,
 	AuthInterceptor,
 	ValidationInterceptor
-} from "src/controller/interceptors";
-import { BaseController } from "src/controller";
+} from "src/controller";
 
 describe("Derived Interceptors: ", () => {
 	[

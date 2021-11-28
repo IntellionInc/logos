@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import { Chain } from "@intellion/arche";
-import { BaseController } from "src/controller/Controller";
-import { AuthInterceptor, BaseInterceptor } from "src/controller/interceptors";
-import { BaseSerializer } from "src/controller/serializers/BaseSerializer";
+import { BaseController, AuthInterceptor, BaseInterceptor } from "src/controller";
+import { BaseSerializer } from "src/controller/serializers";
 
 class MockController extends BaseController {}
 

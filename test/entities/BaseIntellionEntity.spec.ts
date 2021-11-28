@@ -1,6 +1,6 @@
 import { BaseEntity } from "typeorm";
-import { BaseIntellionEntity } from "src/entities/BaseIntellionEntity";
-import { ConnectionManagerController } from "src/server/ConnectionManagerController";
+import { BaseIntellionEntity } from "src/entities";
+import { ConnectionManagerController } from "src/server";
 
 jest.mock("../../src/server/ConnectionManagerController.ts");
 

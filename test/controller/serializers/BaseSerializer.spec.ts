@@ -1,6 +1,6 @@
 import { BaseSerializer } from "src/controller/serializers";
 import { String, Email } from "src/controller/serializers/models";
-import { TypeMismatchError, SerializationError } from "src/controller/errors";
+import { TypeMismatchError, SerializationError } from "src/controller";
 
 jest.mock("../../../src/controller/errors", () => ({
 	TypeMismatchError: jest.fn().mockReturnValue(Error("some-mismatch-error")),

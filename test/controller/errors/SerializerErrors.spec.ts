@@ -1,4 +1,4 @@
-import { TypeMismatchError, SerializationError } from "src/controller/errors";
+import { TypeMismatchError, SerializationError } from "src/controller";
 
 describe("TypeMismatchError", () => {
 	let uut: TypeMismatchError;

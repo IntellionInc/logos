@@ -1,7 +1,5 @@
 import { Chain } from "@intellion/arche";
-import { BaseController } from "src/controller";
-
-import { BaseInterceptor } from "src/controller/interceptors";
+import { BaseController, BaseInterceptor } from "src/controller";
 
 jest.mock("@intellion/arche", () => ({
 	Chain: class MockChain {
