@@ -5,7 +5,7 @@ import { MethodEnum } from "../types";
 export class Router {
 	routes: any;
 	controllers: any;
-	constructor(routes: any, controllers: BaseController[]) {
+	constructor(routes: any, controllers: typeof BaseController[]) {
 		Object.assign(this, { routes, controllers });
 	}
 
@@ -31,7 +31,7 @@ export class Router {
 		return router;
 	};
 
-	methodGetter = async (args: any[], matcher: string[]) => {
+	methodGetter = async (matcher: string[], args: any[]) => {
 		const Controller = this.controllers[matcher[0]];
 		const method = matcher[1];
 

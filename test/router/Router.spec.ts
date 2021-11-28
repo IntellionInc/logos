@@ -9,7 +9,7 @@ jest.mock("express", () => ({
 }));
 describe("Router", () => {
 	const mockRoutes = {};
-	const mockControllers = [] as unknown as BaseController[];
+	const mockControllers = [] as unknown as typeof BaseController[];
 
 	let uut: any;
 	beforeEach(() => {
@@ -137,7 +137,7 @@ describe("Router", () => {
 			});
 
 			it("should return the controller method", async () => {
-				const result = await uut.methodGetter(args, matcher);
+				const result = await uut.methodGetter(matcher, args);
 				expect(mockControls).toHaveBeenCalledWith(matcher[1]);
 				expect(result).toBe("some-exec-return");
 			});

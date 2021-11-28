@@ -88,7 +88,7 @@ describe("Server: ", () => {
 			const app = { use: null };
 			const mockRouter = {} as IRouter;
 			const routes = {} as IRoutes;
-			const controllers = [{} as BaseController];
+			const controllers = [{} as typeof BaseController];
 
 			let mockUseMethod: jest.Mock;
 			let mockRouterMap: jest.Mock;
@@ -233,7 +233,7 @@ describe("Server: ", () => {
 
 		describe("useRouter", () => {
 			const routes = {} as IRoutes;
-			const controllers = [] as BaseController[];
+			const controllers = [] as typeof BaseController[];
 			let boundAttachRouter: jest.Mock;
 			beforeEach(() => {
 				boundAttachRouter = jest.fn();

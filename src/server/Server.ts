@@ -41,7 +41,7 @@ export class Server extends Chain {
 		controllers
 	}: {
 		routes: IRoutes;
-		controllers: BaseController[];
+		controllers: typeof BaseController[];
 	}) => {
 		this.app.use(new Router(routes, controllers).map());
 	};
@@ -76,7 +76,7 @@ export class Server extends Chain {
 		return this;
 	};
 
-	useRouter = (routes: IRoutes, controllers: BaseController[]) => {
+	useRouter = (routes: IRoutes, controllers: typeof BaseController[]) => {
 		this.before(this._attachRouter.bind(this, { routes, controllers }));
 		return this;
 	};
