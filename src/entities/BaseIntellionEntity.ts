@@ -1,4 +1,4 @@
-import { ConnectionManagerController } from "src/server";
+import { ConnectionManagerController } from "../server";
 import { BaseEntity, Connection } from "typeorm";
 
 export class BaseIntellionEntity extends BaseEntity {
