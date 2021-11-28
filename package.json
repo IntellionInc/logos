@@ -38,7 +38,6 @@
 	},
 	"dependencies": {
 		"@intellion/arche": "^1.0.1",
-		"@intellion/logos": "^1.0.3",
 		"axios": "^0.24.0",
 		"dotenv": "^10.0.0",
 		"express": "^4.17.1",
