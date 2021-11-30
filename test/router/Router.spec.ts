@@ -1,6 +1,6 @@
-import { Router } from "src/router";
 import express from "express";
-import { BaseController } from "src/controller";
+import { Router } from "src/router";
+import { ControllerList } from "src/types";
 
 jest.mock("express", () => ({
 	express: class MockExpress {
@@ -9,7 +9,7 @@ jest.mock("express", () => ({
 }));
 describe("Router", () => {
 	const mockRoutes = {};
-	const mockControllers = [] as unknown as typeof BaseController[];
+	const mockControllers = {} as ControllerList;
 
 	let uut: any;
 	beforeEach(() => {
@@ -123,16 +123,17 @@ describe("Router", () => {
 		describe("methodGetter", () => {
 			const args: any[] = [];
 			const matcher = ["controller", "method"];
-			let mockControls: any, mockExec: any;
-			class mockController {
-				controls = mockControls;
-			}
+			let mockControls: jest.Mock;
+			let mockExec: jest.Mock;
 
 			beforeEach(() => {
 				mockExec = jest.fn().mockReturnValue("some-exec-return");
-				mockControls = jest.fn().mockReturnValue({ exec: mockExec });
+				mockControls = jest.fn().mockReturnValue({ x: mockExec() });
+				class MockController {
+					controls = mockControls;
+				}
 				Object.assign(uut.controllers, {
-					controller: mockController
+					controller: MockController
 				});
 			});
 

@@ -1,48 +1,44 @@
-import express, { IRouter } from "express";
-import { BaseController } from "../controller";
-import { MethodEnum } from "../types";
+import express, { IRouter, Request, Response } from "express";
+import { ControllerList, IRoutes, MethodEnum } from "../types";
 
 export class Router {
-	routes: any;
-	controllers: any;
-	constructor(routes: any, controllers: typeof BaseController[]) {
+	routes: IRoutes;
+	controllers: ControllerList;
+	constructor(routes: IRoutes, controllers: ControllerList) {
 		Object.assign(this, { routes, controllers });
 	}
 
 	map = () => this._map(this.routes);
 
-	_map = (layer: any) => {
+	_map = (layer: IRoutes) => {
 		const router = express.Router({ mergeParams: true });
 		if (this.isDeepestLayer(layer)) return this.route(router, layer);
 		return this.use(router, layer);
 	};
 
-	isDeepestLayer = (layer: any) =>
+	isDeepestLayer = (layer: IRoutes) =>
 		Object.values(layer).every(item => typeof item === "string");
 
-	route = (router: IRouter, layer: any) => {
+	route = (router: IRouter, layer: IRoutes) => {
 		Object.keys(layer).forEach(key => {
 			if (typeof layer[key] === "string") {
 				router.route("/");
-				const matcher = layer[key].split(" => ");
+				const matcher = (<string>layer[key]).split(" => ");
 				router.route("/")[key as MethodEnum](this.methodGetter.bind(this, matcher));
 			}
 		});
 		return router;
 	};
 
-	methodGetter = async (matcher: string[], args: any[]) => {
-		const Controller = this.controllers[matcher[0]];
-		const method = matcher[1];
-
-		//exec() or exec ??
-		return await new Controller(...args).controls(method).exec();
+	methodGetter = async (matcher: [string, string], ...args: [Request, Response]) => {
+		const [Controller, method] = [this.controllers[matcher[0]], matcher[1]];
+		return await new Controller(...args).controls(method).x;
 	};
 
-	use = (router: IRouter, layer: any) => {
+	use = (router: IRouter, layer: IRoutes) => {
 		const routedRouter = this.route(router, layer);
 		const routersBelow = Object.keys(layer).map(layerKey => {
-			return this._map(layer[layerKey]);
+			return this._map(<IRoutes>layer[layerKey]);
 		});
 
 		routersBelow.forEach((routerBelow, index) =>
