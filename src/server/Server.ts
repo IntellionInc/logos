@@ -1,15 +1,11 @@
 import http from "http";
 import { config } from "dotenv";
-import express, { Request, Response } from "express";
+import express from "express";
 import { ConnectionManager, ConnectionOptions } from "typeorm";
-
 import { Chain } from "@intellion/arche";
 import { Router } from "../router";
-import { BaseController } from "../controller";
-
-import { IRoutes } from "../types";
+import { ControllerList, IRoutes } from "../types";
 import { ConnectionManagerController } from "./ConnectionManagerController";
-import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConnectionOptions";
 
 config();
 
@@ -41,7 +37,7 @@ export class Server extends Chain {
 		controllers
 	}: {
 		routes: IRoutes;
-		controllers: typeof BaseController[];
+		controllers: ControllerList;
 	}) => {
 		this.app.use(new Router(routes, controllers).map());
 	};
@@ -66,7 +62,8 @@ export class Server extends Chain {
 	_createConnection = (connectionName: string, dbConfig: ConnectionOptions) =>
 		this.connectionManager.create({ name: connectionName, ...dbConfig });
 
-	usePostgres = (connectionName: string, dbConfig: PostgresConnectionOptions) => {
+	// usePostgres = (connectionName: string, dbConfig: PostgresConnectionOptions) => {
+	usePostgres = (connectionName: string, dbConfig: any) => {
 		this.before(this._createConnection.bind(this, connectionName, dbConfig));
 		return this;
 	};
@@ -76,7 +73,7 @@ export class Server extends Chain {
 		return this;
 	};
 
-	useRouter = (routes: IRoutes, controllers: typeof BaseController[]) => {
+	useRouter = (routes: IRoutes, controllers: ControllerList) => {
 		this.before(this._attachRouter.bind(this, { routes, controllers }));
 		return this;
 	};

@@ -5,8 +5,7 @@ import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConne
 import http from "http";
 
 import { Router } from "src/router";
-import { IRoutes } from "src/types";
-import { BaseController } from "src/controller";
+import { ControllerList, IRoutes } from "src/types";
 import { Server, ConnectionManagerController } from "src/server";
 
 jest.mock("express");
@@ -88,7 +87,7 @@ describe("Server: ", () => {
 			const app = { use: null };
 			const mockRouter = {} as IRouter;
 			const routes = {} as IRoutes;
-			const controllers = [{} as typeof BaseController];
+			const controllers = {} as ControllerList;
 
 			let mockUseMethod: jest.Mock;
 			let mockRouterMap: jest.Mock;
@@ -233,7 +232,7 @@ describe("Server: ", () => {
 
 		describe("useRouter", () => {
 			const routes = {} as IRoutes;
-			const controllers = [] as typeof BaseController[];
+			const controllers = {} as ControllerList;
 			let boundAttachRouter: jest.Mock;
 			beforeEach(() => {
 				boundAttachRouter = jest.fn();
