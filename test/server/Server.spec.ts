@@ -1,12 +1,11 @@
+import http from "http";
 import express, { IRouter } from "express";
 import * as typeorm from "typeorm";
-import { ConnectionManager, ConnectionOptions } from "typeorm";
-import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConnectionOptions";
-import http from "http";
+import { ConnectionManager } from "typeorm";
 
 import { Router } from "src/router";
-import { ControllerList, IRoutes } from "src/types";
 import { Server, ConnectionManagerController } from "src/server";
+import { ControllerList, IPostgresConnection, IRoutes } from "src/types";
 
 jest.mock("express");
 jest.mock("typeorm");
@@ -176,7 +175,7 @@ describe("Server: ", () => {
 
 		describe("_createConnection", () => {
 			const connectionName = "some-connection-name";
-			const dbConfig = { some: "config" } as unknown as ConnectionOptions;
+			const dbConfig = { some: "config" } as unknown as IPostgresConnection;
 			const options = { name: connectionName, ...dbConfig };
 			let mockCreate: jest.Mock;
 			beforeEach(() => {
@@ -196,7 +195,7 @@ describe("Server: ", () => {
 
 		describe("usePostgres", () => {
 			const connectionName = "some-connection-name";
-			const dbConfig = { some: "config" } as unknown as PostgresConnectionOptions;
+			const dbConfig = { some: "config" } as unknown as IPostgresConnection;
 			let boundCreateConnection: jest.Mock;
 			beforeEach(() => {
 				boundCreateConnection = jest.fn();

@@ -4,7 +4,7 @@ import express from "express";
 import { ConnectionManager, ConnectionOptions } from "typeorm";
 import { Chain } from "@intellion/arche";
 import { Router } from "../router";
-import { ControllerList, IRoutes } from "../types";
+import { ControllerList, IRoutes, IPostgresConnection } from "../types";
 import { ConnectionManagerController } from "./ConnectionManagerController";
 
 config();
@@ -62,8 +62,7 @@ export class Server extends Chain {
 	_createConnection = (connectionName: string, dbConfig: ConnectionOptions) =>
 		this.connectionManager.create({ name: connectionName, ...dbConfig });
 
-	// usePostgres = (connectionName: string, dbConfig: PostgresConnectionOptions) => {
-	usePostgres = (connectionName: string, dbConfig: any) => {
+	usePostgres = (connectionName: string, dbConfig: IPostgresConnection) => {
 		this.before(this._createConnection.bind(this, connectionName, dbConfig));
 		return this;
 	};

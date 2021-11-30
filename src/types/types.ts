@@ -11,4 +11,13 @@ export interface IRoutes {
 	[key: string]: string | IRoutes;
 }
 
+export interface IPostgresConnection {
+	type: "postgres";
+	host: string;
+	port: number;
+	username: string;
+	password: string;
+	database: string;
+}
+
 export type MethodEnum = "get" | "post" | "patch" | "put" | "delete";
