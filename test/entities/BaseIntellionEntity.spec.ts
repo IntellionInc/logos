@@ -4,7 +4,7 @@ import { ConnectionManagerController } from "src/server";
 
 jest.mock("../../src/server/ConnectionManagerController.ts");
 
-describe.only("BaseIntellionEntity", () => {
+describe("BaseIntellionEntity", () => {
 	let uut: BaseIntellionEntity;
 	let mockDefaultConnection: jest.Mock, mockUseConnection: jest.Mock;
 	beforeEach(() => {
