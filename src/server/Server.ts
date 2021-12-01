@@ -1,7 +1,7 @@
 import http from "http";
 import { config } from "dotenv";
 import express from "express";
-import { ConnectionManager, ConnectionOptions } from "typeorm";
+import { Connection, ConnectionManager, ConnectionOptions } from "typeorm";
 import { Chain } from "@intellion/arche";
 import { Router } from "../router";
 import { ControllerList, IRoutes, IPostgresConnection } from "../types";
@@ -59,8 +59,21 @@ export class Server extends Chain {
 		ConnectionManagerController.connectionManager = this.connectionManager;
 	};
 
-	_createConnection = (connectionName: string, dbConfig: ConnectionOptions) =>
-		this.connectionManager.create({ name: connectionName, ...dbConfig });
+	_createConnection = async (connectionName: string, dbConfig: ConnectionOptions) => {
+		const connection = this.connectionManager.create({
+			name: connectionName,
+			...dbConfig
+		});
+		await this._establishConnection(connection);
+	};
+
+	_establishConnection = async (connection: Connection) => {
+		try {
+			await connection.connect();
+		} catch (error) {
+			throw error;
+		}
+	};
 
 	usePostgres = (connectionName: string, dbConfig: IPostgresConnection) => {
 		this.before(this._createConnection.bind(this, connectionName, dbConfig));

@@ -177,9 +177,14 @@ describe("Server: ", () => {
 			const connectionName = "some-connection-name";
 			const dbConfig = { some: "config" } as unknown as IPostgresConnection;
 			const options = { name: connectionName, ...dbConfig };
+			const mockReturnedConnection = {};
+
 			let mockCreate: jest.Mock;
+			let mockEstablishConnection: jest.Mock;
 			beforeEach(() => {
-				mockCreate = jest.fn();
+				mockCreate = jest.fn().mockReturnValueOnce(mockReturnedConnection);
+				mockEstablishConnection = jest.fn();
+				uut._establishConnection = mockEstablishConnection;
 
 				Object.assign(uut, {
 					connectionManager: {
@@ -187,9 +192,46 @@ describe("Server: ", () => {
 					}
 				});
 			});
-			it("should create a new connection instance", () => {
-				uut._createConnection(connectionName, dbConfig);
+
+			afterEach(() => {
+				jest.restoreAllMocks();
+			});
+			it("should create a new connection instance", async () => {
+				await uut._createConnection(connectionName, dbConfig);
 				expect(mockCreate).toHaveBeenCalledWith(options);
+				expect(mockEstablishConnection).toHaveBeenCalledWith(mockReturnedConnection);
+			});
+		});
+
+		describe("_establishConnection", () => {
+			const mockConnection = { connect: null } as typeorm.Connection;
+			let mockConnect: jest.Mock;
+			describe("when connection is successful", () => {
+				const mockResolvedConnection = {};
+				beforeEach(() => {
+					mockConnect = jest.fn().mockResolvedValueOnce(mockResolvedConnection);
+					mockConnection.connect = mockConnect;
+				});
+				it("should connect to db", async () => {
+					await uut._establishConnection(mockConnection);
+					expect(mockConnect).toHaveBeenCalled();
+				});
+			});
+			describe("when connection is not successful", () => {
+				const error = { message: "some-error-message" };
+				beforeEach(() => {
+					mockConnect = jest.fn().mockRejectedValueOnce(error);
+					mockConnection.connect = mockConnect;
+				});
+				it("should throw an error", async () => {
+					expect.assertions(2);
+					try {
+						await uut._establishConnection(mockConnection);
+					} catch (err) {
+						expect(err).toBe(error);
+					}
+					expect(mockConnect).toHaveBeenCalled();
+				});
 			});
 		});
 
