@@ -1,7 +1,7 @@
 import http from "http";
 import express, { IRouter } from "express";
 import * as typeorm from "typeorm";
-import { ConnectionManager } from "typeorm";
+import { BaseEntity, ConnectionManager } from "typeorm";
 
 import { Router } from "src/router";
 import { Server, ConnectionManagerController } from "src/server";
@@ -110,50 +110,48 @@ describe("Server: ", () => {
 			});
 		});
 
+		describe("_onListenCallback", () => {
+			let mockConsoleLog: jest.Mock;
+			let realConsoleLog: any;
+
+			beforeEach(() => {
+				mockConsoleLog = jest.fn();
+				realConsoleLog = console.log;
+				console.log = mockConsoleLog;
+			});
+			afterEach(() => {
+				console.log = realConsoleLog;
+			});
+			it("should log the correct message to console", () => {
+				uut._onListenCallback("4242");
+				expect(mockConsoleLog).toHaveBeenCalledWith("App running on port: 4242");
+			});
+		});
+
 		describe("_serve", () => {
 			let mockServerListen: jest.Mock;
 			const server = { listen: null };
 
-			describe("When there are no errors", () => {
-				const mockConnectionManager = {};
-				let callbackFn: any;
-				beforeEach(() => {
-					Object.assign(uut, { connectionManager: mockConnectionManager });
-					mockServerListen = jest
-						.fn()
-						.mockImplementation((port: string, callback: (...args: any[]) => any) => {
-							callbackFn = callback;
-							return new Promise(resolve => resolve(callback));
-						});
+			const mockConnectionManager = {};
+			let boundCallback: jest.Mock;
+			let mockCallback: jest.Mock;
+			beforeEach(() => {
+				Object.assign(uut, { connectionManager: mockConnectionManager });
+				mockServerListen = jest.fn();
 
-					server.listen = mockServerListen;
-					Object.assign(uut, { server });
-				});
+				boundCallback = jest.fn();
+				mockCallback = jest.fn().mockReturnValueOnce(boundCallback);
+				uut._onListenCallback.bind = mockCallback;
 
-				it("should listen on the provided port, and set yield", async () => {
-					await uut._serve();
-					expect(uut.yield).toBe(mockConnectionManager);
-					expect(mockServerListen).toHaveBeenCalledWith(process.env.PORT, callbackFn);
-				});
+				server.listen = mockServerListen;
+				Object.assign(uut, { server });
 			});
 
-			describe("When there is an error", () => {
-				const error = { message: "some-error-message" } as Error;
-				beforeEach(() => {
-					mockServerListen = jest.fn().mockRejectedValueOnce(error);
-
-					server.listen = mockServerListen;
-					Object.assign(uut, { server });
-				});
-
-				it("should handle error", async () => {
-					expect.assertions(1);
-					try {
-						await uut._serve();
-					} catch (err) {
-						expect(err).toBe(error);
-					}
-				});
+			it("should listen on the provided port, and set yield", async () => {
+				await uut._serve();
+				expect(uut.yield).toBe(mockConnectionManager);
+				expect(mockServerListen).toHaveBeenCalledWith(process.env.PORT, boundCallback);
+				expect(mockCallback).toHaveBeenCalledWith(uut, process.env.PORT);
 			});
 		});
 
@@ -175,17 +173,26 @@ describe("Server: ", () => {
 
 		describe("_createConnection", () => {
 			const connectionName = "some-connection-name";
-			const dbConfig = { some: "config" } as unknown as IPostgresConnection;
+			const mockEntity1 = new BaseEntity();
+			const mockEntity2 = new BaseEntity();
+			const dbConfig = {
+				some: "config",
+				entities: [mockEntity1, mockEntity2]
+			} as unknown as IPostgresConnection;
 			const options = { name: connectionName, ...dbConfig };
 			const mockReturnedConnection = {};
 
 			let mockCreate: jest.Mock;
 			let mockEstablishConnection: jest.Mock;
+			let mockUseConnection: jest.Mock;
 			beforeEach(() => {
 				mockCreate = jest.fn().mockReturnValueOnce(mockReturnedConnection);
 				mockEstablishConnection = jest.fn();
 				uut._establishConnection = mockEstablishConnection;
+				mockUseConnection = jest.fn();
 
+				Object.assign(mockEntity1, { useConnection: mockUseConnection });
+				Object.assign(mockEntity2, { useConnection: mockUseConnection });
 				Object.assign(uut, {
 					connectionManager: {
 						create: mockCreate
@@ -199,6 +206,8 @@ describe("Server: ", () => {
 			it("should create a new connection instance", async () => {
 				await uut._createConnection(connectionName, dbConfig);
 				expect(mockCreate).toHaveBeenCalledWith(options);
+				expect(mockUseConnection).toHaveBeenNthCalledWith(1, mockReturnedConnection);
+				expect(mockUseConnection).toHaveBeenNthCalledWith(2, mockReturnedConnection);
 				expect(mockEstablishConnection).toHaveBeenCalledWith(mockReturnedConnection);
 			});
 		});
@@ -206,32 +215,14 @@ describe("Server: ", () => {
 		describe("_establishConnection", () => {
 			const mockConnection = { connect: null } as typeorm.Connection;
 			let mockConnect: jest.Mock;
-			describe("when connection is successful", () => {
-				const mockResolvedConnection = {};
-				beforeEach(() => {
-					mockConnect = jest.fn().mockResolvedValueOnce(mockResolvedConnection);
-					mockConnection.connect = mockConnect;
-				});
-				it("should connect to db", async () => {
-					await uut._establishConnection(mockConnection);
-					expect(mockConnect).toHaveBeenCalled();
-				});
+			const mockResolvedConnection = {};
+			beforeEach(() => {
+				mockConnect = jest.fn().mockResolvedValueOnce(mockResolvedConnection);
+				mockConnection.connect = mockConnect;
 			});
-			describe("when connection is not successful", () => {
-				const error = { message: "some-error-message" };
-				beforeEach(() => {
-					mockConnect = jest.fn().mockRejectedValueOnce(error);
-					mockConnection.connect = mockConnect;
-				});
-				it("should throw an error", async () => {
-					expect.assertions(2);
-					try {
-						await uut._establishConnection(mockConnection);
-					} catch (err) {
-						expect(err).toBe(error);
-					}
-					expect(mockConnect).toHaveBeenCalled();
-				});
+			it("should call 'connect' method of the Entity", async () => {
+				await uut._establishConnection(mockConnection);
+				expect(mockConnect).toHaveBeenCalled();
 			});
 		});
 
