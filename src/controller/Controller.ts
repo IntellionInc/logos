@@ -18,6 +18,7 @@ export abstract class BaseController extends Chain {
 		super();
 
 		this.initially(this._setupInterceptors)
+			.initially(this._setAuthenticates)
 			.main(this._control)
 			.finally(this._setStatus)
 			.finally(this._respond);
@@ -25,7 +26,10 @@ export abstract class BaseController extends Chain {
 
 	one = this;
 
-	authProtocol = async () => true;
+	authProtocol = async () => ({
+		success: true,
+		data: "Default Auth Protocol"
+	});
 
 	validationProtocol = async () => ({
 		success: true,
@@ -40,6 +44,8 @@ export abstract class BaseController extends Chain {
 	serializes = () => this.after(this._serialize);
 
 	authenticates = () => this.interceptors.push(new AuthInterceptor(this));
+
+	_setAuthenticates = () => this.authenticates();
 
 	_setupInterceptors = () => {
 		if (this.interceptors.length === 0) return;
@@ -75,7 +81,10 @@ export abstract class BaseController extends Chain {
 		if (result && result.success === false) this.status = 500;
 	};
 
-	_respond = async () => this.response.send(this._interception || this._serializedResult);
+	_respond = async () =>
+		this.response.send(
+			this._interception || this._serializedResult || this._controlledResult
+		);
 
 	_setStatus = async () => this.response.status(this.status);
 }
