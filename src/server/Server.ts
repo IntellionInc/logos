@@ -1,7 +1,7 @@
 import http from "http";
 import { config } from "dotenv";
 import express from "express";
-import { Connection, ConnectionManager, ConnectionOptions } from "typeorm";
+import { BaseEntity, Connection, ConnectionManager, ConnectionOptions } from "typeorm";
 import { Chain } from "@intellion/arche";
 import { Router } from "../router";
 import { ControllerList, IRoutes, IPostgresConnection } from "../types";
@@ -42,16 +42,14 @@ export class Server extends Chain {
 		this.app.use(new Router(routes, controllers).map());
 	};
 
+	_onListenCallback = (port: string) => {
+		console.log(`App running on port: ${port}`);
+	};
+
 	_serve = async () => {
-		try {
-			const port = process.env.PORT || 8080;
-			await this.server.listen(port, () => {
-				console.log(`App running on port: ${port}`);
-			});
-			this.yield = this.connectionManager;
-		} catch (error) {
-			throw error;
-		}
+		const port = process.env.PORT || "5432";
+		await this.server.listen(port, this._onListenCallback.bind(this, port));
+		this.yield = this.connectionManager;
 	};
 
 	_createConnectionManager = () => {
@@ -64,16 +62,13 @@ export class Server extends Chain {
 			name: connectionName,
 			...dbConfig
 		});
+		dbConfig.entities.forEach((Entity: typeof BaseEntity) =>
+			Entity.useConnection(connection)
+		);
 		await this._establishConnection(connection);
 	};
 
-	_establishConnection = async (connection: Connection) => {
-		try {
-			await connection.connect();
-		} catch (error) {
-			throw error;
-		}
-	};
+	_establishConnection = async (connection: Connection) => await connection.connect();
 
 	usePostgres = (connectionName: string, dbConfig: IPostgresConnection) => {
 		this.before(this._createConnection.bind(this, connectionName, dbConfig));

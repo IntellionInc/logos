@@ -5,6 +5,7 @@ export abstract class BaseInterceptor extends Chain {
 	protocol: (...args: any[]) => any;
 	failureStatus: number;
 	failureMessage: string;
+	data: string;
 	success = true;
 
 	constructor(public controller: BaseController) {
@@ -15,7 +16,10 @@ export abstract class BaseInterceptor extends Chain {
 			.finally(this.setYield);
 	}
 
-	runProtocol = async () => (this.success = await this.protocol());
+	runProtocol = async () => {
+		const { success, data } = await this.protocol();
+		[this.success, this.data] = [success, data];
+	};
 
 	setControllerStatus = () => {
 		if (!this.success) this.controller.status = this.failureStatus;
@@ -26,6 +30,6 @@ export abstract class BaseInterceptor extends Chain {
 	};
 
 	setYield = () => {
-		this.yield = { success: this.success };
+		this.yield = { success: this.success, data: this.data };
 	};
 }

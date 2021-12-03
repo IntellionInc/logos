@@ -48,14 +48,19 @@ describe("BaseInterceptor: ", () => {
 
 	describe("class methods", () => {
 		describe("runProtocol", () => {
+			const success = true; // value of this boolean is arbitrary.
+			const data = "some-data";
+			const options = { success, data };
 			let mockProtocol: jest.Mock;
 			beforeEach(() => {
-				mockProtocol = jest.fn();
+				mockProtocol = jest.fn().mockResolvedValueOnce(options);
 				uut.protocol = mockProtocol;
 			});
 			it("should execute correct controller protocol", async () => {
 				await uut.runProtocol();
 				expect(mockProtocol).toHaveBeenCalled();
+				expect(uut.success).toBe(success);
+				expect(uut.data).toBe(data);
 			});
 		});
 		describe("setControllerStatus", () => {
@@ -99,16 +104,18 @@ describe("BaseInterceptor: ", () => {
 		});
 
 		describe("setYield", () => {
+			const data = "some-data";
 			[true, false].forEach(successCase => {
 				describe(`for ${
 					successCase ? "a succecssful" : "an unsuccessful"
 				} protocol execution`, () => {
 					beforeEach(() => {
 						uut.success = successCase;
+						uut.data = data;
 					});
 					it("should set controller yield to success status", () => {
 						uut.setYield();
-						expect(uut.yield).toEqual({ success: successCase });
+						expect(uut.yield).toEqual({ success: successCase, data });
 					});
 				});
 			});
