@@ -16,15 +16,12 @@ export abstract class BaseController extends Chain {
 	public _serializedResult: Record<any, any>;
 	constructor(public request: Request, public response: Response) {
 		super();
-
-		this.initially(this._setupInterceptors)
-			.initially(this._setAuthenticates)
-			.main(this._control)
-			.finally(this._setStatus)
-			.finally(this._respond);
+		this._setupInterceptors();
+		this.main(this._control).finally(this._setStatus).finally(this._respond);
 	}
 
 	one = this;
+	and = this;
 
 	authProtocol = async () => ({
 		success: true,
@@ -41,11 +38,25 @@ export abstract class BaseController extends Chain {
 		return this;
 	};
 
-	serializes = () => this.after(this._serialize);
+	authenticates = () => {
+		this._setAuthInterceptors();
+		return this;
+	};
 
-	authenticates = () => this.interceptors.push(new AuthInterceptor(this));
+	serializes = () => {
+		this._setSerializers();
+		return this;
+	};
 
-	_setAuthenticates = () => this.authenticates();
+	_setAuthInterceptors = () => {
+		this.before(new AuthInterceptor(this).exec);
+		return this;
+	};
+
+	_setSerializers = () => {
+		this.after(this._serialize);
+		return this;
+	};
 
 	_setupInterceptors = () => {
 		if (this.interceptors.length === 0) return;

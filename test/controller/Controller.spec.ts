@@ -22,10 +22,10 @@ describe("Controller: ", () => {
 
 	describe("class constructor", () => {
 		let instance: BaseController;
-
 		beforeEach(() => {
 			request = {} as Request;
 			response = {} as Response;
+
 			instance = new MockController(request, response);
 		});
 
@@ -51,10 +51,7 @@ describe("Controller: ", () => {
 				expect(instance[key as keyof MockController]).toEqual(properties[key]);
 			});
 
-			const { _setAuthenticates, _setupInterceptors, _control, _setStatus, _respond } =
-				instance;
-			expect(instance.initially).toHaveBeenNthCalledWith(1, _setupInterceptors);
-			expect(instance.initially).toHaveBeenNthCalledWith(2, _setAuthenticates);
+			const { _control, _setStatus, _respond } = instance;
 			expect(instance.main).toHaveBeenCalledWith(_control);
 			expect(instance.finally).toHaveBeenNthCalledWith(1, _setStatus);
 			expect(instance.finally).toHaveBeenNthCalledWith(2, _respond);
@@ -68,19 +65,21 @@ describe("Controller: ", () => {
 	});
 
 	describe("syntactic sugar", () => {
-		describe("one", () => {
-			it("should be equal to class instance itself", () => {
-				expect(uut.one).toBe(uut);
+		["one", "and"].forEach(property => {
+			describe(property, () => {
+				it("should be equal to the class instance itself", () => {
+					expect(uut[property]).toBe(uut);
+				});
 			});
 		});
 	});
 
 	describe("class methods", () => {
-		const defaultAuthProtocol = {
-			success: true,
-			data: "Default Auth Protocol"
-		};
 		describe("authProtocol", () => {
+			const defaultAuthProtocol = {
+				success: true,
+				data: "Default Auth Protocol"
+			};
 			it("should return successful with the pre-determined data by default", async () => {
 				const result = await uut.authProtocol();
 				expect(result).toEqual(defaultAuthProtocol);
@@ -104,47 +103,70 @@ describe("Controller: ", () => {
 			someFn = jest.fn();
 			Object.assign(uut, { someFn });
 		});
-		it("should set the controlled function and return this", () => {
+		it("should set the controlled function and return the controller instance", () => {
 			const result = uut.controls("someFn");
 			expect(result).toBe(uut);
 			expect(uut._controlledFunction).toBe(someFn);
 		});
 	});
 
+	describe("authenticates", () => {
+		let mockSetAuthInterceptors: jest.Mock;
+		beforeEach(() => {
+			mockSetAuthInterceptors = jest.fn();
+			uut._setAuthInterceptors = mockSetAuthInterceptors;
+		});
+
+		it("shoulde call '_setAuthInterceptors' method and return the class instance itself", () => {
+			const result = uut.authenticates();
+			expect(mockSetAuthInterceptors).toHaveBeenCalled();
+			expect(result).toBe(uut);
+		});
+	});
+
 	describe("serializes", () => {
+		let mockSetSerializers: jest.Mock;
+		beforeEach(() => {
+			mockSetSerializers = jest.fn();
+			uut._setSerializers = mockSetSerializers;
+		});
+		it("should call '_setSerializers' method and reutrn the class instance itself", () => {
+			const result = uut.serializes();
+			expect(mockSetSerializers).toHaveBeenCalled();
+			expect(result).toBe(uut);
+		});
+	});
+
+	describe("_setAuthInterceptors", () => {
+		let mockBefore: jest.Mock;
+		let mockExec: jest.Mock;
+		beforeEach(() => {
+			mockBefore = jest.fn();
+			mockExec = jest.fn();
+			Object.assign(uut, { before: mockBefore });
+			Object.assign(AuthInterceptor, { prototype: { exec: mockExec } });
+		});
+		it("should add a new 'AuthInterceptor' hook among 'before' hooks and return  the class instance itself", () => {
+			const result = uut._setAuthInterceptors();
+			expect(AuthInterceptor).toHaveBeenCalledWith(uut);
+			expect(mockBefore).toHaveBeenCalledWith(mockExec);
+			expect(result).toBe(uut);
+		});
+	});
+
+	describe("_setSerializers", () => {
+		let mockAfter: jest.Mock;
 		let mockSerialize: jest.Mock;
 		beforeEach(() => {
-			uut.after = jest.fn();
+			mockAfter = jest.fn();
 			mockSerialize = jest.fn();
 			uut._serialize = mockSerialize;
+			Object.assign(uut, { after: mockAfter });
 		});
-		it("should add '_serialize' hook to _afterHooks", () => {
-			uut.serializes();
-			expect(uut.after).toHaveBeenCalledWith(mockSerialize);
-		});
-	});
-
-	describe("authenticates", () => {
-		beforeEach(() => {
-			uut.interceptors = [];
-		});
-
-		it("should add a new 'AuthInterceptor' hook to _beforeHooks", () => {
-			uut.authenticates();
-			expect(AuthInterceptor).toHaveBeenCalledWith(uut);
-			expect(uut.interceptors[0]).toBeInstanceOf(AuthInterceptor);
-		});
-	});
-
-	describe("_setAuthenticates", () => {
-		let mockAuthenticates: jest.Mock;
-		beforeEach(() => {
-			mockAuthenticates = jest.fn();
-			uut.authenticates = mockAuthenticates;
-		});
-		it("should call 'authenticates' method", () => {
-			uut._setAuthenticates();
-			expect(mockAuthenticates).toHaveBeenCalled();
+		it("should add '_serialize' among 'after' hooks, and return the class instance itself", () => {
+			const result = uut._setSerializers();
+			expect(mockAfter).toHaveBeenCalledWith(mockSerialize);
+			expect(result).toBe(uut);
 		});
 	});
 
