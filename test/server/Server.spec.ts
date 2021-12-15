@@ -23,6 +23,8 @@ jest.mock("@intellion/arche", () => ({
 
 describe("Server: ", () => {
 	let uut: Server;
+	const defaultPort = "5432";
+
 	beforeEach(() => {
 		uut = new Server();
 	});
@@ -33,6 +35,8 @@ describe("Server: ", () => {
 		});
 		it("should have correct properties", () => {
 			expect(uut).toHaveProperty("app");
+			expect(uut).toHaveProperty("defaultPort");
+			expect(uut.defaultPort).toBe(defaultPort);
 
 			const { _createServer, _createConnectionManager, _serve } = uut;
 			expect(uut.initially).toHaveBeenNthCalledWith(1, _createConnectionManager);
@@ -112,19 +116,22 @@ describe("Server: ", () => {
 
 		describe("_onListenCallback", () => {
 			let mockConsoleLog: jest.Mock;
-			let realConsoleLog: any;
+			let actualConsoleLog: any;
+
+			const dbPort = "4242";
+			const listenMessage = `App running on port: ${dbPort}`;
 
 			beforeEach(() => {
 				mockConsoleLog = jest.fn();
-				realConsoleLog = console.log;
+				actualConsoleLog = console.log;
 				console.log = mockConsoleLog;
 			});
 			afterEach(() => {
-				console.log = realConsoleLog;
+				console.log = actualConsoleLog;
 			});
 			it("should log the correct message to console", () => {
-				uut._onListenCallback("4242");
-				expect(mockConsoleLog).toHaveBeenCalledWith("App running on port: 4242");
+				uut._onListenCallback(dbPort);
+				expect(mockConsoleLog).toHaveBeenCalledWith(listenMessage);
 			});
 		});
 
@@ -135,7 +142,11 @@ describe("Server: ", () => {
 			const mockConnectionManager = {};
 			let boundCallback: jest.Mock;
 			let mockCallback: jest.Mock;
+			let actual: Record<string, string>;
+			const dbPort = "4242";
 			beforeEach(() => {
+				actual = process.env;
+
 				Object.assign(uut, { connectionManager: mockConnectionManager });
 				mockServerListen = jest.fn();
 
@@ -146,12 +157,30 @@ describe("Server: ", () => {
 				server.listen = mockServerListen;
 				Object.assign(uut, { server });
 			});
-
-			it("should listen on the provided port, and set yield", async () => {
-				await uut._serve();
-				expect(uut.yield).toBe(mockConnectionManager);
-				expect(mockServerListen).toHaveBeenCalledWith(process.env.PORT, boundCallback);
-				expect(mockCallback).toHaveBeenCalledWith(uut, process.env.PORT);
+			afterEach(() => {
+				process.env = actual;
+			});
+			describe("when a port is specified", () => {
+				beforeEach(() => {
+					process.env.PORT = dbPort;
+				});
+				it("should use the specified port", async () => {
+					await uut._serve();
+					expect(uut.yield).toBe(mockConnectionManager);
+					expect(mockServerListen).toHaveBeenCalledWith(dbPort, boundCallback);
+					expect(mockCallback).toHaveBeenCalledWith(uut, dbPort);
+				});
+			});
+			describe("when a port is not specified", () => {
+				beforeEach(() => {
+					process.env = {};
+				});
+				it("should use the default port", async () => {
+					await uut._serve();
+					expect(uut.yield).toBe(mockConnectionManager);
+					expect(mockServerListen).toHaveBeenCalledWith(defaultPort, boundCallback);
+					expect(mockCallback).toHaveBeenCalledWith(uut, defaultPort);
+				});
 			});
 		});
 

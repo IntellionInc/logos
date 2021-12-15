@@ -16,6 +16,7 @@ export class Server extends Chain {
 	server: http.Server;
 
 	connectionManager: ConnectionManager;
+	defaultPort = "5432";
 
 	constructor() {
 		super();
@@ -47,7 +48,7 @@ export class Server extends Chain {
 	};
 
 	_serve = async () => {
-		const port = process.env.PORT || "5432";
+		const port = process.env.PORT || this.defaultPort;
 		await this.server.listen(port, this._onListenCallback.bind(this, port));
 		this.yield = this.connectionManager;
 	};
