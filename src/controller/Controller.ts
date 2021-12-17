@@ -28,7 +28,7 @@ export abstract class BaseController extends Chain {
 	one = this;
 	and = this;
 
-	responseProtocol = async () => ({
+	responseProtocol = async (): Promise<any> => ({
 		status: this.status,
 		meta: this.meta,
 		data: this.yield
