@@ -10,10 +10,9 @@ jest.mock("../../../src/controller/errors", () => ({
 describe("BaseSerializer: ", () => {
 	describe("serialization", () => {
 		let mockInput: Record<any, any>;
-		let MockSerializerInstance: BaseSerializer;
+		let MockSerializerInstance: typeof BaseSerializer;
 		describe("when the derived serializer has no getters", () => {
 			describe("when there are no errors", () => {
-				const output = { key1: "value1", key2: "value2" };
 				beforeEach(() => {
 					class MockSerializer extends BaseSerializer {
 						static serialize = (obj: any) => super.serialize(this, obj);
@@ -21,17 +20,47 @@ describe("BaseSerializer: ", () => {
 						key2 = String;
 					}
 					MockSerializerInstance = MockSerializer;
-					mockInput = {
-						key1: "value1",
-						key2: "value2"
-					};
 				});
-				it("should return the serialized result", async () => {
-					const result = await BaseSerializer.serialize(
-						MockSerializerInstance,
-						mockInput
-					);
-					expect(result).toEqual(output);
+				describe("when the input is an array", () => {
+					const output = [
+						{ key1: "value11", key2: "value21" },
+						{ key1: "value12", key2: "value22" }
+					];
+					beforeEach(() => {
+						mockInput = [
+							{
+								key1: "value11",
+								key2: "value21"
+							},
+							{
+								key1: "value12",
+								key2: "value22"
+							}
+						];
+					});
+					it("should return the serialized result", async () => {
+						const result = await BaseSerializer.serialize(
+							MockSerializerInstance,
+							mockInput
+						);
+						expect(result).toEqual(output);
+					});
+				});
+				describe("when the input is not an array", () => {
+					const output = { key1: "value1", key2: "value2" };
+					beforeEach(() => {
+						mockInput = {
+							key1: "value1",
+							key2: "value2"
+						};
+					});
+					it("should return the serialized result", async () => {
+						const result = await BaseSerializer.serialize(
+							MockSerializerInstance,
+							mockInput
+						);
+						expect(result).toEqual(output);
+					});
 				});
 			});
 
@@ -44,32 +73,68 @@ describe("BaseSerializer: ", () => {
 							key2 = Email;
 						}
 						MockSerializerInstance = MockSerializer;
-
-						mockInput = {
-							key1: "value1",
-							key2: "value2"
-						};
 					});
-					it("it should throw the appropriate error", async () => {
-						expect.assertions(4);
-						let result: any;
-						try {
-							result = await BaseSerializer.serialize(MockSerializerInstance, mockInput);
-						} catch (err: any) {
-							expect(err.message).toBe("some-serialization-error");
-						}
-						expect(SerializationError).toHaveBeenCalledWith([
-							Error("some-mismatch-error")
-						]);
-						expect(TypeMismatchError).toHaveBeenCalledWith("key2", Email, "value2");
-						expect(result).toBeUndefined();
+					describe("when the input is an array", () => {
+						beforeEach(() => {
+							mockInput = [
+								{
+									key1: "value11",
+									key2: "value12"
+								},
+								{
+									key1: "value21",
+									key2: "value@mail"
+								}
+							];
+						});
+						it("should throw the appropriate error", async () => {
+							expect.assertions(4);
+							let result: any;
+							try {
+								result = await BaseSerializer.serialize(
+									MockSerializerInstance,
+									mockInput
+								);
+							} catch (err: any) {
+								expect(err.message).toBe("some-serialization-error");
+							}
+							expect(SerializationError).toHaveBeenCalledWith([
+								Error("some-mismatch-error")
+							]);
+							expect(TypeMismatchError).toHaveBeenCalledWith("key2", Email, "value12");
+							expect(result).toBeUndefined();
+						});
+					});
+					describe("when the input is not an array", () => {
+						beforeEach(() => {
+							mockInput = {
+								key1: "value1",
+								key2: "value2"
+							};
+						});
+						it("it should throw the appropriate error", async () => {
+							expect.assertions(4);
+							let result: any;
+							try {
+								result = await BaseSerializer.serialize(
+									MockSerializerInstance,
+									mockInput
+								);
+							} catch (err: any) {
+								expect(err.message).toBe("some-serialization-error");
+							}
+							expect(SerializationError).toHaveBeenCalledWith([
+								Error("some-mismatch-error")
+							]);
+							expect(TypeMismatchError).toHaveBeenCalledWith("key2", Email, "value2");
+							expect(result).toBeUndefined();
+						});
 					});
 				});
 			});
 		});
 		describe("when the derived serializer has getters", () => {
 			describe("when there are no errors", () => {
-				const output = { key1: "value1", key2: "value2", getParam: "some-param" };
 				beforeEach(() => {
 					class MockSerializer extends BaseSerializer {
 						static serialize = (obj: any) => super.serialize(this, obj);
@@ -81,17 +146,47 @@ describe("BaseSerializer: ", () => {
 						}
 					}
 					MockSerializerInstance = MockSerializer;
-					mockInput = {
-						key1: "value1",
-						key2: "value2"
-					};
 				});
-				it("should return the serialized result", async () => {
-					const result = await BaseSerializer.serialize(
-						MockSerializerInstance,
-						mockInput
-					);
-					expect(result).toEqual(output);
+				describe("when the input is an array", () => {
+					const output = [
+						{ key1: "value11", key2: "value21", getParam: "some-param" },
+						{ key1: "value12", key2: "value22", getParam: "some-param" }
+					];
+					beforeEach(() => {
+						mockInput = [
+							{
+								key1: "value11",
+								key2: "value21"
+							},
+							{
+								key1: "value12",
+								key2: "value22"
+							}
+						];
+					});
+					it("should return the serialized result", async () => {
+						const result = await BaseSerializer.serialize(
+							MockSerializerInstance,
+							mockInput
+						);
+						expect(result).toEqual(output);
+					});
+				});
+				describe("when the input is not an array", () => {
+					const output = { key1: "value1", key2: "value2", getParam: "some-param" };
+					beforeEach(() => {
+						mockInput = {
+							key1: "value1",
+							key2: "value2"
+						};
+					});
+					it("should return the serialized result", async () => {
+						const result = await BaseSerializer.serialize(
+							MockSerializerInstance,
+							mockInput
+						);
+						expect(result).toEqual(output);
+					});
 				});
 			});
 			describe("when there are errors", () => {
@@ -110,22 +205,56 @@ describe("BaseSerializer: ", () => {
 							}
 						}
 						MockSerializerInstance = MockSerializer;
-
-						mockInput = {
-							key1: "value1",
-							key2: "value2"
-						};
 					});
-					it("it should throw the appropriate error", async () => {
-						expect.assertions(3);
-						let result: any;
-						try {
-							result = await BaseSerializer.serialize(MockSerializerInstance, mockInput);
-						} catch (err: any) {
-							expect(err.message).toBe("some-serialization-error");
-						}
-						expect(SerializationError).toHaveBeenCalledWith([error]);
-						expect(result).toBeUndefined();
+					describe("when the input is an array", () => {
+						beforeEach(() => {
+							mockInput = [
+								{
+									key1: "value11",
+									key2: "value21"
+								},
+								{
+									key1: "value12",
+									key2: "value22"
+								}
+							];
+						});
+						it("should throw the approptiate error", async () => {
+							expect.assertions(3);
+							let result: any;
+							try {
+								result = await BaseSerializer.serialize(
+									MockSerializerInstance,
+									mockInput
+								);
+							} catch (err: any) {
+								expect(err.message).toBe("some-serialization-error");
+							}
+							expect(SerializationError).toHaveBeenCalledWith([error]);
+							expect(result).toBeUndefined();
+						});
+					});
+					describe("when the input is not an array", () => {
+						beforeEach(() => {
+							mockInput = {
+								key1: "value1",
+								key2: "value2"
+							};
+						});
+						it("should throw the appropriate error", async () => {
+							expect.assertions(3);
+							let result: any;
+							try {
+								result = await BaseSerializer.serialize(
+									MockSerializerInstance,
+									mockInput
+								);
+							} catch (err: any) {
+								expect(err.message).toBe("some-serialization-error");
+							}
+							expect(SerializationError).toHaveBeenCalledWith([error]);
+							expect(result).toBeUndefined();
+						});
 					});
 				});
 
@@ -141,25 +270,62 @@ describe("BaseSerializer: ", () => {
 							}
 						}
 						MockSerializerInstance = MockSerializer;
-
-						mockInput = {
-							key1: "value1",
-							key2: "value2"
-						};
 					});
-					it("it should throw the appropriate error", async () => {
-						expect.assertions(4);
-						let result: any;
-						try {
-							result = await BaseSerializer.serialize(MockSerializerInstance, mockInput);
-						} catch (err: any) {
-							expect(err.message).toBe("some-serialization-error");
-						}
-						expect(SerializationError).toHaveBeenCalledWith([
-							Error("some-mismatch-error")
-						]);
-						expect(TypeMismatchError).toHaveBeenCalledWith("key2", Email, "value2");
-						expect(result).toBeUndefined();
+					describe("when the input is an array", () => {
+						beforeEach(() => {
+							mockInput = [
+								{
+									key1: "value11",
+									key2: "value21"
+								},
+								{
+									key1: "value12",
+									key2: "value@mail"
+								}
+							];
+						});
+						it("should throw the appropriate error", async () => {
+							expect.assertions(4);
+							let result: any;
+							try {
+								result = await BaseSerializer.serialize(
+									MockSerializerInstance,
+									mockInput
+								);
+							} catch (err: any) {
+								expect(err.message).toBe("some-serialization-error");
+							}
+							expect(SerializationError).toHaveBeenCalledWith([
+								Error("some-mismatch-error")
+							]);
+							expect(TypeMismatchError).toHaveBeenCalledWith("key2", Email, "value21");
+							expect(result).toBeUndefined();
+						});
+					});
+					describe("when the input is not an array", () => {
+						beforeEach(() => {
+							mockInput = {
+								key1: "value1",
+								key2: "value2"
+							};
+						});
+						it("it should throw the appropriate error", async () => {
+							expect.assertions(4);
+							let result: any;
+							try {
+								result = await BaseSerializer.serialize(
+									MockSerializerInstance,
+									mockInput
+								);
+							} catch (err: any) {
+								expect(err.message).toBe("some-serialization-error");
+							}
+							expect(SerializationError).toHaveBeenCalledWith([
+								Error("some-mismatch-error")
+							]);
+							expect(TypeMismatchError).toHaveBeenCalledWith("key2", Email, "value2");
+							expect(result).toBeUndefined();
+						});
 					});
 				});
 			});

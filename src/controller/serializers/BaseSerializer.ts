@@ -2,8 +2,6 @@ import { TypeMismatchError, SerializationError } from "../errors";
 import { IntellionType } from "./models";
 
 export class BaseSerializer {
-	// static fromTypOrmModel = Model => BaseSerializer
-
 	static #findGetters = (klass: any) =>
 		Object.getOwnPropertyNames(klass.prototype)
 			.map(key => [key, Object.getOwnPropertyDescriptor(klass.prototype, key)])
@@ -16,7 +14,10 @@ export class BaseSerializer {
 			.map(([key]) => key as string)
 			.filter(item => !!item);
 
-	static serialize = async (klass: any, obj: any) => {
+	static #createSerializedObject = async (
+		klass: typeof BaseSerializer,
+		obj: Record<any, any> | Record<any, any>[]
+	) => {
 		const getters: string[] = BaseSerializer.#findGetters(klass);
 
 		const serializer = new klass();
@@ -43,5 +44,15 @@ export class BaseSerializer {
 		if (errors.length) throw new SerializationError(errors);
 
 		return result;
+	};
+	static serialize = async (
+		klass: typeof BaseSerializer,
+		data: Record<any, any> | Record<any, any>[]
+	) => {
+		if (Array.isArray(data))
+			return await Promise.all(
+				data.map(async obj => await BaseSerializer.#createSerializedObject(klass, obj))
+			);
+		return await BaseSerializer.#createSerializedObject(klass, data);
 	};
 }
