@@ -2,8 +2,10 @@ import { Chain } from "@intellion/arche";
 import { Request, Response } from "express";
 import { BaseInterceptor, AuthInterceptor } from "./interceptors";
 import { BaseSerializer } from "./serializers";
+
 export abstract class BaseController extends Chain {
 	status = 200;
+	meta: Record<any, any> = {};
 	_interception: string | null = null;
 
 	public user: any;
@@ -17,11 +19,20 @@ export abstract class BaseController extends Chain {
 	constructor(public request: Request, public response: Response) {
 		super();
 		this._setupInterceptors();
-		this.main(this._control).finally(this._setStatus).finally(this._respond);
+		this.main(this._control)
+			.finally(this._setStatus)
+			.finally(this._setYield)
+			.finally(this._respond);
 	}
 
 	one = this;
 	and = this;
+
+	responseProtocol = async () => ({
+		status: this.status,
+		meta: this.meta,
+		data: this.yield
+	});
 
 	authProtocol = async () => ({
 		success: true,
@@ -92,10 +103,12 @@ export abstract class BaseController extends Chain {
 		if (result && result.success === false) this.status = 500;
 	};
 
-	_respond = async () =>
-		this.response.send(
-			this._interception || this._serializedResult || this._controlledResult
-		);
+	_setYield = () =>
+		(this.yield = this._interception || this._serializedResult || this._controlledResult);
+
+	_respond = async () => {
+		this.response.send(this.responseProtocol());
+	};
 
 	_setStatus = async () => this.response.status(this.status);
 }

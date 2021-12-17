@@ -51,10 +51,11 @@ describe("Controller: ", () => {
 				expect(instance[key as keyof MockController]).toEqual(properties[key]);
 			});
 
-			const { _control, _setStatus, _respond } = instance;
+			const { _control, _setStatus, _setYield, _respond } = instance;
 			expect(instance.main).toHaveBeenCalledWith(_control);
 			expect(instance.finally).toHaveBeenNthCalledWith(1, _setStatus);
-			expect(instance.finally).toHaveBeenNthCalledWith(2, _respond);
+			expect(instance.finally).toHaveBeenNthCalledWith(2, _setYield);
+			expect(instance.finally).toHaveBeenNthCalledWith(3, _respond);
 		});
 	});
 
@@ -83,6 +84,20 @@ describe("Controller: ", () => {
 			it("should return successful with the pre-determined data by default", async () => {
 				const result = await uut.authProtocol();
 				expect(result).toEqual(defaultAuthProtocol);
+			});
+		});
+		describe("responseProtocol", () => {
+			const status = 4242;
+			const meta = { some: "meta-data" };
+			const data = { some: "data" };
+			const options = { status, meta, yield: data };
+			const defaultResponseProtocol = { status, meta, data };
+			beforeEach(() => {
+				Object.assign(uut, { ...options });
+			});
+			it("should return default response fields and their values", async () => {
+				const result = await uut.responseProtocol();
+				expect(result).toEqual(defaultResponseProtocol);
 			});
 		});
 		describe("validationProtocol", () => {
@@ -320,45 +335,64 @@ describe("Controller: ", () => {
 		});
 	});
 
+	describe("_setYield", () => {
+		describe("when there is an interception", () => {
+			const interception = "some-interception";
+			beforeEach(() => {
+				uut._interception = interception;
+			});
+			it("should set the yield as interception", () => {
+				uut._setYield();
+				expect(uut.yield).toBe(interception);
+			});
+		});
+		describe("when there is no interception", () => {
+			beforeEach(() => {
+				uut._interception = undefined;
+			});
+			describe("when there is a serialized result", () => {
+				const serializedResult = { some: "serialized-result" };
+				beforeEach(() => {
+					uut._serializedResult = serializedResult;
+				});
+				it("should set the yield as serialized result", () => {
+					uut._setYield();
+					expect(uut.yield).toBe(serializedResult);
+				});
+			});
+			describe("when there is no serialized result", () => {
+				const controlledResult = {
+					success: true, // value of this boolean is arbitrary.
+					some: "controlled-result"
+				};
+				beforeEach(() => {
+					uut._serializedResult = undefined;
+					uut._controlledResult = controlledResult;
+				});
+				it("should set the yield as controlled result", () => {
+					uut._setYield();
+					expect(uut.yield).toBe(controlledResult);
+				});
+			});
+		});
+	});
+
 	describe("_respond", () => {
 		let send: jest.Mock;
+		const mockReturnedResponse = { success: true, data: "some-serialized-data" };
+		let mockResponseProtocol: jest.Mock;
 		beforeEach(() => {
 			send = jest.fn();
 			Object.assign(uut.response, { send });
-		});
 
-		describe("when interception is set", () => {
-			const mockInterception = "some-interception";
-			beforeEach(() => {
-				uut._interception = mockInterception;
-			});
-			it("should respond with interception", async () => {
-				await uut._respond();
-				expect(send).toHaveBeenCalledWith(mockInterception);
-			});
+			mockResponseProtocol = jest.fn().mockReturnValueOnce(mockReturnedResponse);
+			uut._serializedResult = mockReturnedResponse;
+			uut.responseProtocol = mockResponseProtocol;
 		});
-
-		describe("when interception is not set", () => {
-			describe("when serialized result is set", () => {
-				const mockSerializedResponse = { success: true, data: "some-serialized-data" };
-				beforeEach(() => {
-					uut._serializedResult = mockSerializedResponse;
-				});
-				it("should respond with _serializedResult", async () => {
-					await uut._respond();
-					expect(send).toHaveBeenCalledWith(mockSerializedResponse);
-				});
-			});
-			describe("when serialized result is not set", () => {
-				const mockControlledResponse = { success: true, data: "some-controlled-data" };
-				beforeEach(() => {
-					uut._controlledResult = mockControlledResponse;
-				});
-				it("should respond with _controlledResult", async () => {
-					await uut._respond();
-					expect(send).toHaveBeenCalledWith(mockControlledResponse);
-				});
-			});
+		it("should respond with _serializedResult", async () => {
+			await uut._respond();
+			expect(send).toHaveBeenCalledWith(mockReturnedResponse);
+			expect(mockResponseProtocol).toHaveBeenCalled();
 		});
 	});
 
