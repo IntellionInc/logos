@@ -107,7 +107,7 @@ export abstract class BaseController extends Chain {
 		(this.yield = this._interception || this._serializedResult || this._controlledResult);
 
 	_respond = async () => {
-		this.response.send(this.responseProtocol());
+		this.response.send(await this.responseProtocol());
 	};
 
 	_setStatus = async () => this.response.status(this.status);

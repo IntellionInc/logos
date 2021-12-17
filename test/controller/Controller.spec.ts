@@ -385,7 +385,7 @@ describe("Controller: ", () => {
 			send = jest.fn();
 			Object.assign(uut.response, { send });
 
-			mockResponseProtocol = jest.fn().mockReturnValueOnce(mockReturnedResponse);
+			mockResponseProtocol = jest.fn().mockResolvedValueOnce(mockReturnedResponse);
 			uut._serializedResult = mockReturnedResponse;
 			uut.responseProtocol = mockResponseProtocol;
 		});
