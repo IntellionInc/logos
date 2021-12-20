@@ -14,7 +14,7 @@ export abstract class BaseController extends Chain {
 	public Serializer = BaseSerializer;
 
 	public _controlledFunction: any;
-	public _controlledResult: { success: boolean; data?: any; error?: string; stack?: any };
+	public _controlledResult: any;
 	public _serializedResult: Record<any, any>;
 	constructor(public request: Request, public response: Response) {
 		super();
@@ -91,7 +91,7 @@ export abstract class BaseController extends Chain {
 		try {
 			this._serializedResult = result = await BaseSerializer.serialize(
 				this.Serializer,
-				this._controlledResult.data
+				this._controlledResult.data ?? this._controlledResult
 			);
 		} catch (error: any) {
 			this._serializedResult = result = {

@@ -276,32 +276,44 @@ describe("Controller: ", () => {
 	describe("_serialize", () => {
 		describe("when there are no errors", () => {
 			const mockResult = { success: null };
+			const mockReturnedData = { some: "data" };
 			beforeEach(() => {
-				Object.assign(uut, { _controlledResult: { data: "some-data" } });
+				Object.assign(uut, { _controlledResult: mockReturnedData });
 				BaseSerializer.serialize = jest.fn().mockResolvedValue(mockResult);
 			});
 
 			afterEach(() => {
 				expect(BaseSerializer.serialize).toHaveBeenCalledWith(
 					uut.Serializer,
-					"some-data"
+					mockReturnedData
 				);
 				expect(uut._serializedResult).toBe(mockResult);
 			});
 
 			describe("when serialization is successful", () => {
-				beforeEach(() => {
-					Object.assign(mockResult, { data: "some-data", success: true });
-				});
+				describe("when result has a 'data' field", () => {
+					beforeEach(() => {
+						Object.assign(mockResult, { data: mockReturnedData, success: true });
+					});
 
-				it("should set '_serializedResult' appropriately", async () => {
-					await uut._serialize();
+					it("should set '_serializedResult' appropriately", async () => {
+						await uut._serialize();
+					});
+				});
+				describe("when result does not have a 'data' field", () => {
+					beforeEach(() => {
+						uut._controlledResult = mockReturnedData;
+					});
+
+					it("should set '_serializedResult' appropriately", async () => {
+						await uut._serialize();
+					});
 				});
 			});
 
 			describe("when serialization is unsuccessful", () => {
 				beforeEach(() => {
-					Object.assign(mockResult, { data: "some-data", success: false });
+					Object.assign(mockResult, { data: mockReturnedData, success: false });
 				});
 
 				it("should set 'status' to 500", async () => {
