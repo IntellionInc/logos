@@ -32,7 +32,9 @@ export class Router {
 
 	methodGetter = async (matcher: [string, string], ...args: [Request, Response]) => {
 		const [Controller, method] = [this.controllers[matcher[0]], matcher[1]];
-		return await new Controller(...args).controls(method).x;
+		const controller = new Controller(...args);
+		controller.assignErrors(Controller._errorsDictionary);
+		return await controller.controls(method).x;
 	};
 
 	use = (router: IRouter, layer: IRoutes) => {

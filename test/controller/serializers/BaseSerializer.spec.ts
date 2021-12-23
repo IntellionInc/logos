@@ -15,7 +15,7 @@ describe("BaseSerializer: ", () => {
 			describe("when there are no errors", () => {
 				beforeEach(() => {
 					class MockSerializer extends BaseSerializer {
-						static serialize = (obj: any) => super.serialize(this, obj);
+						// static serialize = (obj: any) => super.serialize(this, obj);
 						key1 = String;
 						key2 = String;
 					}
@@ -68,7 +68,7 @@ describe("BaseSerializer: ", () => {
 				describe("when some of the types are not matching", () => {
 					beforeEach(() => {
 						class MockSerializer extends BaseSerializer {
-							static serialize = (obj: any) => super.serialize(this, obj);
+							// static serialize = (obj: any) => super.serialize(this, obj);
 							key1 = String;
 							key2 = Email;
 						}
@@ -137,7 +137,7 @@ describe("BaseSerializer: ", () => {
 			describe("when there are no errors", () => {
 				beforeEach(() => {
 					class MockSerializer extends BaseSerializer {
-						static serialize = (obj: any) => super.serialize(this, obj);
+						// static serialize = (obj: any) => super.serialize(this, obj);
 						key1 = String;
 						key2 = String;
 
@@ -196,7 +196,7 @@ describe("BaseSerializer: ", () => {
 					beforeEach(() => {
 						mockGetter = jest.fn().mockRejectedValue(error);
 						class MockSerializer extends BaseSerializer {
-							static serialize = (obj: any) => super.serialize(this, obj);
+							// static serialize = (obj: any) => BaseSerializer.serialize(this, obj);
 							key1 = String;
 							key2 = String;
 
@@ -261,7 +261,7 @@ describe("BaseSerializer: ", () => {
 				describe("when some of the types are not matching", () => {
 					beforeEach(() => {
 						class MockSerializer extends BaseSerializer {
-							static serialize = (obj: any) => super.serialize(this, obj);
+							// static serialize = (obj: any) => BaseSerializer.serialize(this, obj);
 							key1 = String;
 							key2 = Email;
 

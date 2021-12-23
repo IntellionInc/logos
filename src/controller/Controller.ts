@@ -1,9 +1,9 @@
-import { Chain } from "@intellion/arche";
+import { Chain, HookError } from "@intellion/arche";
 import { Request, Response } from "express";
 import { BaseInterceptor, AuthInterceptor } from "./interceptors";
 import { BaseSerializer } from "./serializers";
 
-export abstract class BaseController extends Chain {
+export class BaseController extends Chain {
 	status = 200;
 	meta: Record<any, any> = {};
 	_interception: string | null = null;
@@ -16,6 +16,17 @@ export abstract class BaseController extends Chain {
 	public _controlledFunction: any;
 	public _controlledResult: any;
 	public _serializedResult: Record<any, any>;
+
+	public static _errorsDictionary = {};
+	public _errorsDictionary = {};
+
+	static assignErrors = (klass, newErrorAssignments) => {
+		Object.assign(klass._errorsDictionary, newErrorAssignments);
+	};
+	assignErrors = newErrorAssignments => {
+		Object.assign(this._errorsDictionary, newErrorAssignments);
+	};
+
 	constructor(public request: Request, public response: Response) {
 		super();
 		this._setupInterceptors();
@@ -28,11 +39,18 @@ export abstract class BaseController extends Chain {
 	one = this;
 	and = this;
 
-	responseProtocol = async (): Promise<any> => ({
-		status: this.status,
-		meta: this.meta,
-		data: this.yield
-	});
+	responseProtocol = async (): Promise<any> =>
+		this.status >= 200 && this.status < 300
+			? {
+					status: this.status,
+					meta: this.meta,
+					data: this.yield
+			  }
+			: {
+					status: this.status,
+					meta: this.meta,
+					...this.yield
+			  };
 
 	authProtocol = async () => ({
 		success: true,
@@ -75,14 +93,8 @@ export abstract class BaseController extends Chain {
 	};
 
 	_control = async () => {
-		let result: any;
-		try {
-			result = await this._controlledFunction(this.request);
-		} catch (error: any) {
-			result = { success: false, error: error.message, stack: error.stack };
-		}
+		const result = await this._controlledFunction(this.request);
 
-		if (result && result.success === false) this.status = 500;
 		this._controlledResult = result;
 	};
 
@@ -111,4 +123,29 @@ export abstract class BaseController extends Chain {
 	};
 
 	_setStatus = async () => this.response.status(this.status);
+	_setInternalError = error => {
+		this.status = 500;
+		this._controlledResult = { error: error.message, stack: error.stack };
+	};
+
+	errorHandler = async hookError => {
+		console.log("ATTEMPTING HANDLE");
+		console.log(hookError);
+		try {
+			await hookError.handle();
+		} catch (error) {
+			console.log(error);
+			const KnownError = this._errorsDictionary[error.name];
+			if (!KnownError) {
+				this.status = 500;
+				this._controlledResult = { error: error.message, stack: error.stack };
+			}
+			if (KnownError) {
+				const knownError = new KnownError(error.message);
+				if (error.hasOwnProperty("handle")) return await this.errorHandler(knownError);
+				this.status = knownError.status;
+				this._controlledResult = { error: knownError.message, stack: error.stack };
+			}
+		}
+	};
 }
