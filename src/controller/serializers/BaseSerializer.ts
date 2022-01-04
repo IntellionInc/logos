@@ -1,58 +1,144 @@
 import { TypeMismatchError, SerializationError } from "../errors";
-import { IntellionType } from "./models";
 
+type ObjStatus = "getter" | "allowed" | "optional";
 export class BaseSerializer {
-	static #findGetters = (klass: any) =>
-		Object.getOwnPropertyNames(klass.prototype)
-			.map(key => [key, Object.getOwnPropertyDescriptor(klass.prototype, key)])
+	static findGetters = (Schema: typeof BaseSerializer) =>
+		Object.getOwnPropertyNames(Schema.prototype)
+			.map(key => [key, Object.getOwnPropertyDescriptor(Schema.prototype, key)])
 			.filter(
 				([key, descriptor]) =>
 					descriptor &&
 					descriptor.hasOwnProperty("get") &&
-					typeof (descriptor as PropertyDescriptor).get === "function"
+					typeof (<PropertyDescriptor>descriptor).get === "function"
 			)
-			.map(([key]) => key as string)
+			.map(([key]) => <string>key)
 			.filter(item => !!item);
 
-	static #createSerializedObject = async (
-		klass: typeof BaseSerializer,
-		obj: Record<any, any> | Record<any, any>[]
+	static setOutput = async (
+		Schema: typeof BaseSerializer,
+		inputField: Record<string, any>
 	) => {
-		const getters: string[] = BaseSerializer.#findGetters(klass);
+		const getters: string[] = BaseSerializer.findGetters(Schema);
 
-		const serializer = new klass();
-
-		const result: Record<string, any> = {};
-		const errors = (
-			await Promise.all(
-				[...Object.keys(serializer), ...getters].map(async key => {
-					let value: any;
-					try {
-						value = await serializer[key];
-					} catch (error) {
-						return error;
-					}
-					if (getters.includes(key)) result[key] = value;
-					else if ((value as typeof IntellionType).hasSameTypeAs(obj[key])) {
-						serializer[key] = result[key] = obj[key];
-					} else {
-						return new TypeMismatchError(key, value, obj[key]);
-					}
-				})
-			)
-		).filter(itm => !!itm);
-		if (errors.length) throw new SerializationError(errors);
-
-		return result;
+		const serializer = new Schema();
+		return await new Result(getters, serializer, inputField).calculate();
 	};
+
 	static serialize = async (
-		klass: typeof BaseSerializer,
-		data: Record<any, any> | Record<any, any>[]
-	) => {
-		if (Array.isArray(data))
-			return await Promise.all(
-				data.map(async obj => await BaseSerializer.#createSerializedObject(klass, obj))
-			);
-		return await BaseSerializer.#createSerializedObject(klass, data);
+		Schema: typeof BaseSerializer,
+		input: Record<string, any> | Record<string, any>[]
+	) =>
+		Array.isArray(input)
+			? await Promise.all(
+					input.map(async field => await BaseSerializer.setOutput(Schema, field))
+			  )
+			: await BaseSerializer.setOutput(Schema, input);
+}
+
+class Result {
+	errors: any[] = [];
+	shemaKeys: any[];
+	outputCandidate: Record<string, any> = {};
+
+	constructor(
+		public getters: string[],
+		public serializer: BaseSerializer,
+		public inputField: Record<string, any> | Record<string, any>[]
+	) {
+		this.shemaKeys = [...Object.keys(serializer), ...getters];
+	}
+
+	getRequiredType = async (schemaKey: string) => {
+		try {
+			return await this.serializer[schemaKey];
+		} catch (error) {
+			this.errors.push(error);
+		}
 	};
+
+	validate = async (schemaKey: string) => {
+		const schemaValue = await this.getRequiredType(schemaKey);
+
+		const inputValue = this.inputField[schemaKey];
+		return new TypeMatcher(
+			schemaKey,
+			schemaValue,
+			inputValue,
+			this.getters,
+			this.outputCandidate
+		).match();
+	};
+
+	_findErrors = async () => {
+		this.errors = (await Promise.all(this.shemaKeys.map(await this.validate))).filter(
+			e => !!e
+		);
+	};
+
+	calculate = async () => {
+		await this._findErrors();
+		if (this.errors.length) throw new SerializationError(this.errors);
+		return this.outputCandidate;
+	};
+}
+
+class TypeMatcher {
+	typeVariants = {
+		getter: this.schemaValue,
+		allowed: this.inputValue,
+		optional: null
+	};
+
+	constructor(
+		public schemaKey: string,
+		public schemaValue: any,
+		public inputValue: any,
+		public getters: string[],
+		public outputValue: Record<string, any> | Record<string, any>[]
+	) {}
+
+	isGetter = (): ObjStatus | undefined =>
+		this.getters.includes(this.schemaKey) ? "getter" : undefined;
+
+	isAllowed = (): ObjStatus | undefined =>
+		this.schemaValue.hasSameTypeAs(this.inputValue) ? "allowed" : undefined;
+
+	isAllowedFlex = (): ObjStatus | undefined =>
+		this.schemaValue.some(i => i && i.hasSameTypeAs(this.inputValue))
+			? "allowed"
+			: undefined;
+
+	isNullable = (): ObjStatus | undefined =>
+		!this.inputValue && this.schemaValue.some(i => i == undefined)
+			? "optional"
+			: undefined;
+
+	isFlexible = () => {
+		const { schemaKey, schemaValue } = this;
+		return !this.getters.includes(schemaKey) && Array.isArray(schemaValue);
+	};
+
+	getMatch = () => {
+		const { schemaKey, schemaValue, inputValue } = this;
+		const { isGetter, isAllowed } = this;
+
+		const status = isGetter() || isAllowed();
+		this.outputValue[schemaKey] = this.typeVariants[status];
+
+		if (this.outputValue[schemaKey] === undefined)
+			return new TypeMismatchError(schemaKey, schemaValue, inputValue);
+	};
+
+	getMatchFlex = () => {
+		const { schemaKey, schemaValue, inputValue } = this;
+		const { isGetter, isAllowedFlex, isNullable } = this;
+
+		const status = isGetter() || isAllowedFlex() || isNullable();
+		this.outputValue[schemaKey] = this.typeVariants[status];
+
+		if (this.outputValue[schemaKey] === undefined)
+			return new TypeMismatchError(schemaKey, schemaValue, inputValue);
+	};
+
+	match = () => (this.isFlexible() ? this.getMatchFlex() : this.getMatch());
 }
