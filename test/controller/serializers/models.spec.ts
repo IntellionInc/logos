@@ -1,4 +1,4 @@
-import * as Models from "src/controller/serializers/models";
+import * as Models from "src/controller/models";
 
 type ModelName = "String" | "Email" | "Number" | "Boolean";
 
