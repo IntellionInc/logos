@@ -1,5 +1,6 @@
 import { Chain, HookError } from "@intellion/arche";
 import { Request, Response } from "express";
+import { BaseDto } from ".";
 import { BaseInterceptor, AuthInterceptor } from "./interceptors";
 import { BaseSerializer } from "./serializers";
 
@@ -12,6 +13,7 @@ export class BaseController extends Chain {
 	public interceptors: BaseInterceptor[] = [];
 
 	public Serializer = BaseSerializer;
+	public dto: typeof BaseDto;
 
 	public _controlledFunction: any;
 	public _controlledResult: any;
@@ -20,16 +22,10 @@ export class BaseController extends Chain {
 	public static _errorsDictionary = {};
 	public _errorsDictionary = {};
 
-	static assignErrors = (klass, newErrorAssignments) => {
-		Object.assign(klass._errorsDictionary, newErrorAssignments);
-	};
-	assignErrors = newErrorAssignments => {
-		Object.assign(this._errorsDictionary, newErrorAssignments);
-	};
-
 	constructor(public request: Request, public response: Response) {
 		super();
-		this._setupInterceptors();
+
+		this._setInterceptors();
 		this.main(this._control)
 			.finally(this._setStatus)
 			.finally(this._setYield)
@@ -39,107 +35,60 @@ export class BaseController extends Chain {
 	one = this;
 	and = this;
 
-	responseProtocol = async (): Promise<any> =>
-		this.status >= 200 && this.status < 300
-			? {
-					status: this.status,
-					meta: this.meta,
-					data: this.yield
-			  }
-			: {
-					status: this.status,
-					meta: this.meta,
-					...this.yield
-			  };
+	controls = (functionName: string) => {
+		this._controlledFunction = this[functionName as keyof BaseController];
+		return this;
+	};
 
-	authProtocol = async () => ({
-		success: true,
-		data: "Default Auth Protocol"
-	});
+	authProtocol = async () => {
+		return await {
+			success: true,
+			data: "Default Auth Protocol"
+		};
+	};
+
+	authenticates = () => {
+		this._setAuthentication();
+		return this;
+	};
+
+	responseProtocol = async (): Promise<any> =>
+		this.#isSuccessfulResponseStatus()
+			? this.#sendSuccessResponse()
+			: this.#sendFailureResponse();
+
+	serializes = () => {
+		this._setSerialization();
+		return this;
+	};
 
 	validationProtocol = async () => ({
 		success: true,
 		data: "Default Validation Protocol"
 	});
 
-	controls = (functionName: string) => {
-		this._controlledFunction = this[functionName as keyof BaseController];
+	validates = () => {
+		this._setValidation();
 		return this;
 	};
 
-	authenticates = () => {
-		this._setAuthInterceptors();
-		return this;
+	static assignErrors = (klass, newErrorAssignments) => {
+		Object.assign(klass._errorsDictionary, newErrorAssignments);
 	};
 
-	serializes = () => {
-		this._setSerializers();
-		return this;
-	};
-
-	_setAuthInterceptors = () => {
-		this.before(new AuthInterceptor(this).exec);
-		return this;
-	};
-
-	_setSerializers = () => {
-		this.after(this._serialize);
-		return this;
-	};
-
-	_setupInterceptors = () => {
-		if (this.interceptors.length === 0) return;
-		this.interceptors.forEach(interceptor => this.before(interceptor.exec));
-	};
-
-	_control = async () => {
-		const result = await this._controlledFunction(this.request);
-
-		this._controlledResult = result;
-	};
-
-	_serialize = async () => {
-		let result: any;
-		try {
-			this._serializedResult = result = await BaseSerializer.serialize(
-				this.Serializer,
-				this._controlledResult.data ?? this._controlledResult
-			);
-		} catch (error: any) {
-			this._serializedResult = result = {
-				success: false,
-				error: error.message,
-				stack: error.stack
-			};
-		}
-		if (result && result.success === false) this.status = 500;
-	};
-
-	_setYield = () =>
-		(this.yield = this._interception || this._serializedResult || this._controlledResult);
-
-	_respond = async () => {
-		this.response.send(await this.responseProtocol());
-	};
-
-	_setStatus = async () => this.response.status(this.status);
-	_setInternalError = error => {
-		this.status = 500;
-		this._controlledResult = { error: error.message, stack: error.stack };
+	assignErrors = newErrorAssignments => {
+		Object.assign(this._errorsDictionary, newErrorAssignments);
 	};
 
 	errorHandler = async hookError => {
-		console.log("ATTEMPTING HANDLE");
-		console.log(hookError);
+		// console.log("ATTEMPTING HANDLE");
+		// console.log(hookError);
 		try {
 			await hookError.handle();
 		} catch (error) {
-			console.log(error);
+			// console.log(error);
 			const KnownError = this._errorsDictionary[error.name];
-			if (!KnownError) {
-				this.status = 500;
-				this._controlledResult = { error: error.message, stack: error.stack };
-			}
+			if (!KnownError) this._setInternalError(error);
 			if (KnownError) {
 				const knownError = new KnownError(error.message);
 				if (error.hasOwnProperty("handle")) return await this.errorHandler(knownError);
@@ -148,4 +97,82 @@ export class BaseController extends Chain {
 			}
 		}
 	};
+
+	_setInterceptors = () => {
+		if (this.interceptors.length === 0) return;
+		this.interceptors.forEach(interceptor => this.before(interceptor.exec));
+	};
+
+	_control = async () => {
+		const result = await this._controlledFunction(this.request);
+		this._controlledResult = result;
+	};
+
+	_setStatus = async () => this.response.status(this.status);
+
+	_setYield = () =>
+		(this.yield = this._interception || this._serializedResult || this._controlledResult);
+
+	_respond = async () => {
+		this.response.send(await this.responseProtocol());
+	};
+
+	_setAuthentication = () => {
+		this.before(new AuthInterceptor(this).exec);
+		return this;
+	};
+
+	_serialize = async () => {
+		let result: any;
+		try {
+			this._serializedResult = result = await this.#setSerializedResult();
+		} catch (error) {
+			this._serializedResult = result = this.#setSerializationError(error);
+		}
+		if (result && result.success === false) this.#setStatusToFailed();
+	};
+
+	_setSerialization = () => {
+		this.after(this._serialize);
+		return this;
+	};
+
+	_validate = async () => this.validationProtocol();
+
+	_setValidation = () => {
+		this.before(this._validate);
+		return this;
+	};
+
+	_setInternalError = error => {
+		this.status = 500;
+		this._controlledResult = { error: error.message, stack: error.stack };
+	};
+
+	#sendSuccessResponse = () => ({
+		status: this.status,
+		meta: this.meta,
+		data: this.yield
+	});
+
+	#sendFailureResponse = () => ({
+		status: this.status,
+		meta: this.meta,
+		...this.yield
+	});
+
+	#isSuccessfulResponseStatus = () => this.status >= 200 && this.status < 300;
+
+	#setSerializedResult = async () => {
+		const data = this._controlledResult.data ?? this._controlledResult;
+		return await BaseSerializer.serialize(this.Serializer, data);
+	};
+
+	#setSerializationError = (error: Error) => ({
+		success: false,
+		error: error.message,
+		stack: error.stack
+	});
+
+	#setStatusToFailed = () => (this.status = 500);
 }
