@@ -35,12 +35,14 @@ export class Server extends Chain {
 
 	_attachRouter = ({
 		routes,
-		controllers
+		controllers,
+		dtos
 	}: {
 		routes: IRoutes;
 		controllers: ControllerList;
+		dtos: any;
 	}) => {
-		this.app.use(new Router(routes, controllers).map());
+		this.app.use(new Router(routes, controllers, dtos).map());
 	};
 
 	_onListenCallback = (port: string) => {
@@ -71,7 +73,7 @@ export class Server extends Chain {
 
 	_establishConnection = async (connection: Connection) => await connection.connect();
 
-	usePostgres = (connectionName: string, dbConfig: IPostgresConnection) => {
+	usePostgres = (connectionName: string, dbConfig: any) => {
 		this.before(this._createConnection.bind(this, connectionName, dbConfig));
 		return this;
 	};
@@ -81,8 +83,8 @@ export class Server extends Chain {
 		return this;
 	};
 
-	useRouter = (routes: IRoutes, controllers: ControllerList) => {
-		this.before(this._attachRouter.bind(this, { routes, controllers }));
+	useRouter = (routes: IRoutes, controllers: ControllerList, dtos: any) => {
+		this.before(this._attachRouter.bind(this, { routes, controllers, dtos }));
 		return this;
 	};
 }

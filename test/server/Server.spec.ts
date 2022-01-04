@@ -91,6 +91,7 @@ describe("Server: ", () => {
 			const mockRouter = {} as IRouter;
 			const routes = {} as IRoutes;
 			const controllers = {} as ControllerList;
+			const dtos = {};
 
 			let mockUseMethod: jest.Mock;
 			let mockRouterMap: jest.Mock;
@@ -106,9 +107,9 @@ describe("Server: ", () => {
 				});
 			});
 			it("should attach routes to app", () => {
-				uut._attachRouter({ routes, controllers });
+				uut._attachRouter({ routes, controllers, dtos });
 
-				expect(Router).toHaveBeenCalledWith(routes, controllers);
+				expect(Router).toHaveBeenCalledWith(routes, controllers, dtos);
 				expect(mockUseMethod).toHaveBeenCalled();
 				expect(mockRouterMap).toHaveBeenCalled();
 			});
@@ -294,6 +295,7 @@ describe("Server: ", () => {
 		describe("useRouter", () => {
 			const routes = {} as IRoutes;
 			const controllers = {} as ControllerList;
+			const dtos = {};
 			let boundAttachRouter: jest.Mock;
 			beforeEach(() => {
 				boundAttachRouter = jest.fn();
@@ -301,8 +303,12 @@ describe("Server: ", () => {
 			});
 
 			it("should set a before hook with '_attachRouter'", () => {
-				const result = uut.useRouter(routes, controllers);
-				expect(uut._attachRouter.bind).toHaveBeenCalledWith(uut, { routes, controllers });
+				const result = uut.useRouter(routes, controllers, dtos);
+				expect(uut._attachRouter.bind).toHaveBeenCalledWith(uut, {
+					routes,
+					controllers,
+					dtos
+				});
 				expect(uut.before).toHaveBeenCalledWith(boundAttachRouter);
 				expect(result).toBe(uut);
 			});
