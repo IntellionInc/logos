@@ -1,4 +1,5 @@
-import express from "express";
+import express, { Request, Response } from "express";
+import { BaseController, BaseDto } from "src/controller";
 import { Router } from "src/router";
 import { ControllerList } from "src/types";
 
@@ -7,13 +8,18 @@ jest.mock("express", () => ({
 		static Router = jest.fn();
 	}
 }));
+
+jest.mock("src/controller/Controller.ts");
+
 describe("Router", () => {
 	const mockRoutes = {};
 	const mockControllers = {} as ControllerList;
-
+	const mockDtos = <Record<string, Record<string, typeof BaseDto>>>(
+		(<unknown>{ controller: { method: jest.fn() } })
+	);
 	let uut: any;
 	beforeEach(() => {
-		uut = new Router(mockRoutes, mockControllers);
+		uut = new Router(mockRoutes, mockControllers, mockDtos);
 	});
 
 	describe("constructor", () => {
@@ -107,7 +113,7 @@ describe("Router", () => {
 					route: jest.fn().mockReturnValue({ someLayerKey: mockSomeMethod })
 				});
 				mockBind = jest.fn().mockReturnValue("some-bound-method");
-				uut.methodGetter.bind = mockBind;
+				uut.runControllerMethod.bind = mockBind;
 			});
 
 			it("should connect endpoints to the correct controller methods", () => {
@@ -120,27 +126,116 @@ describe("Router", () => {
 			});
 		});
 
-		describe("methodGetter", () => {
-			const args: any[] = [];
-			const matcher = ["controller", "method"];
+		describe("runControllerMethod", () => {
+			const request = {} as Request;
+			const response = {} as Response;
+			const args = [request, response];
+
+			const mockControllerName = "controller";
+			const mockMethodName = "method";
+			const matchers = [mockControllerName, mockMethodName];
+			const mockErrorsDictionary = {};
+
+			let MockControllerClass: typeof BaseController;
+
+			let mockAssignErrors: jest.Mock;
+			let mockStaticAssignErrors: jest.Mock;
 			let mockControls: jest.Mock;
 			let mockExec: jest.Mock;
 
 			beforeEach(() => {
-				mockExec = jest.fn().mockReturnValue("some-exec-return");
-				mockControls = jest.fn().mockReturnValue({ x: mockExec() });
-				class MockController {
-					controls = mockControls;
-				}
-				Object.assign(uut.controllers, {
-					controller: MockController
+				mockAssignErrors = jest.fn();
+				mockStaticAssignErrors = jest.fn();
+				mockControls = jest.fn().mockReturnThis();
+				mockExec = jest.fn();
+
+				class MockController extends BaseController {}
+				MockControllerClass = MockController;
+
+				Object.assign(MockController, {
+					assignErrors: mockStaticAssignErrors,
+					_errorsDictionary: mockErrorsDictionary
+				});
+
+				Object.assign(MockController.prototype, {
+					assignErrors: mockAssignErrors,
+					controls: mockControls,
+					x: mockExec,
+					dto: null
+				});
+
+				Object.assign(uut, { controllers: { controller: MockController } });
+			});
+
+			it("should return execution method of the correct controller instance", async () => {
+				const result = await uut.runControllerMethod(matchers, ...args);
+				expect(result).toBe(mockExec);
+			});
+
+			describe("controller instance and class assignment", () => {
+				it("should find the proper controller, and set class parameters accordingly", async () => {
+					await uut.runControllerMethod(matchers, ...args);
+
+					expect(uut.Controller).toBe(MockControllerClass);
+					expect(uut.controller).toBeInstanceOf(MockControllerClass);
 				});
 			});
 
-			it("should return the controller method", async () => {
-				const result = await uut.methodGetter(matcher, args);
-				expect(mockControls).toHaveBeenCalledWith(matcher[1]);
-				expect(result).toBe("some-exec-return");
+			describe("dto assignment", () => {
+				const mockDto = {} as typeof BaseDto;
+				const mockDtos = {};
+
+				describe("when there is a proper dto", () => {
+					beforeEach(() => {
+						Object.assign(mockDtos, {
+							[mockControllerName]: {
+								[mockMethodName]: mockDto
+							}
+						});
+
+						uut.dtos = mockDtos;
+					});
+
+					it("should find and assign the proper dto to controller instance", async () => {
+						await uut.runControllerMethod(matchers, ...args);
+						expect(uut.controller.dto).toEqual(mockDto);
+					});
+				});
+
+				describe("when there is no dto for the controller", () => {
+					beforeEach(() => {
+						Object.assign(mockDtos, {
+							[mockControllerName]: null
+						});
+
+						uut.dtos = mockDtos;
+					});
+
+					it("should leave dto field for the controller undefined", async () => {
+						await uut.runControllerMethod(matchers, ...args);
+						expect(uut.controller.dto).toBeUndefined();
+					});
+				});
+
+				describe("when there is no controller entry for the required dto", () => {
+					beforeEach(() => {
+						delete mockDtos[mockControllerName];
+
+						uut.dtos = mockDtos;
+					});
+
+					it("should leave dto field for the controller undefined", async () => {
+						await uut.runControllerMethod(matchers, ...args);
+						expect(uut.controller.dto).toBeUndefined();
+					});
+				});
+			});
+
+			describe("error assignment", () => {
+				it("should call 'assignErrors' on controller instance to assign errors of the contoller class to controller instance", async () => {
+					await uut.runControllerMethod(matchers, ...args);
+					expect(mockAssignErrors).toHaveBeenCalledWith(mockErrorsDictionary);
+				});
 			});
 		});
 

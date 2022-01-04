@@ -1,12 +1,16 @@
 import express, { IRouter, Request, Response } from "express";
+import { BaseController, BaseDto } from "index";
 import { ControllerList, IRoutes, MethodEnum } from "../types";
 
 export class Router {
-	routes: IRoutes;
-	controllers: ControllerList;
-	constructor(routes: IRoutes, controllers: ControllerList) {
-		Object.assign(this, { routes, controllers });
-	}
+	Controller: typeof BaseController;
+	controller: BaseController;
+
+	constructor(
+		public routes: IRoutes,
+		public controllers: ControllerList,
+		public dtos: Record<string, Record<string, typeof BaseDto | undefined>>
+	) {}
 
 	map = () => this._map(this.routes);
 
@@ -24,17 +28,21 @@ export class Router {
 			if (typeof layer[key] === "string") {
 				router.route("/");
 				const matcher = (<string>layer[key]).split(" => ");
-				router.route("/")[key as MethodEnum](this.methodGetter.bind(this, matcher));
+				router.route("/")[<MethodEnum>key](this.runControllerMethod.bind(this, matcher));
 			}
 		});
 		return router;
 	};
 
-	methodGetter = async (matcher: [string, string], ...args: [Request, Response]) => {
-		const [Controller, method] = [this.controllers[matcher[0]], matcher[1]];
-		const controller = new Controller(...args);
-		controller.assignErrors(Controller._errorsDictionary);
-		return await controller.controls(method).x;
+	runControllerMethod = async (
+		[controllerName, methodName],
+		...args: [Request, Response]
+	) => {
+		this.#attachController(controllerName, ...args);
+		this.#attachDto([controllerName, methodName]);
+		this.#attachErrors();
+
+		return await this.controller.controls(methodName).x;
 	};
 
 	use = (router: IRouter, layer: IRoutes) => {
@@ -48,4 +56,16 @@ export class Router {
 		);
 		return routedRouter;
 	};
+
+	#attachController = (controllerName, ...args: [Request, Response]) => {
+		this.Controller = this.controllers[controllerName];
+		this.controller = new this.Controller(...args);
+	};
+
+	#attachDto = ([controllerName, methodName]) => {
+		const dto = this.dtos[controllerName]?.[methodName];
+		Object.assign(this.controller, { dto });
+	};
+
+	#attachErrors = () => this.controller.assignErrors(this.Controller._errorsDictionary);
 }
