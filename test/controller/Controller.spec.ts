@@ -21,8 +21,6 @@ describe("Controller: ", () => {
 	let request: Request, response: Response;
 	let uut: MockController;
 
-	const MockInterceptor = { exec: null } as unknown as BaseInterceptor;
-
 	describe("class constructor", () => {
 		let instance: BaseController;
 		beforeEach(() => {
@@ -545,7 +543,167 @@ describe("Controller: ", () => {
 		});
 
 		describe("error handling", () => {
-			//
+			describe("static assignErrors", () => {
+				const mockErrorAssignments = { some: "error-assignment" };
+
+				it("should assign an error dictionary object to '_errorsDictionary' field of the class", () => {
+					BaseController.assignErrors(MockController, mockErrorAssignments);
+					expect(MockController._errorsDictionary).toEqual(mockErrorAssignments);
+				});
+			});
+
+			describe("assignErrors", () => {
+				const mockErrorAssignments = { some: "error-assignment" };
+
+				it("should assign an error dictionary object to '_errorsDictionary' field of a class instance", () => {
+					uut.assignErrors(mockErrorAssignments);
+					expect(uut._errorsDictionary).toEqual(mockErrorAssignments);
+				});
+			});
+
+			describe("errorHandler", () => {
+				let mockHandle: jest.Mock;
+
+				const hookError = { handle: null };
+
+				beforeEach(() => {
+					mockHandle = jest.fn();
+				});
+
+				describe("when the error is defined in errors dictionary", () => {
+					describe("when the error has a 'handle' property", () => {
+						const errorMessage = "some-error-message";
+						const errorStack = "some-error-stack-trace";
+						const error = {
+							name: "someError",
+							message: errorMessage,
+							stack: errorStack,
+							handle: null
+						};
+
+						const returnedErrorMessage = "returned-error-message";
+						const returnedErrorStack = "returned-error-stack";
+						const mockReturnedError = {
+							name: "someReturnedError",
+							status: 444444,
+							message: returnedErrorMessage,
+							stack: returnedErrorStack
+						};
+
+						const recursiveErrorStatus = 434343;
+						const recursiveErrorMessage = "recursive-error-message";
+						class mockRecursiveKnownError {
+							name = "recursiveKnownError";
+							status = recursiveErrorStatus;
+							message = recursiveErrorMessage;
+							handle = jest.fn().mockRejectedValueOnce(mockReturnedError);
+						}
+
+						const knownErrorStatus = 424242;
+						const knownErrorMessage = "known-error-message";
+						const knownErrorStack = "known-error-stack-trace";
+						class mockKnownError {
+							name = "someKnownError";
+							status = knownErrorStatus;
+							message = knownErrorMessage;
+							stack = knownErrorStack;
+						}
+
+						const defaultControlledResult = {
+							error: knownErrorMessage,
+							stack: returnedErrorStack
+						};
+
+						beforeEach(() => {
+							mockHandle.mockRejectedValueOnce(error);
+
+							Object.assign(hookError, { handle: mockHandle });
+
+							Object.assign(error, {
+								handle: jest.fn()
+							});
+
+							Object.assign(uut, {
+								_errorsDictionary: {
+									[error.name]: mockRecursiveKnownError,
+									[mockReturnedError.name]: mockKnownError
+								}
+							});
+						});
+
+						it("should perform error handling recursively", async () => {
+							await uut.errorHandler(hookError);
+							expect(uut.status).toBe(knownErrorStatus);
+							expect(uut._controlledResult).toEqual(defaultControlledResult);
+						});
+					});
+
+					describe("when the error does not have a 'handle' property", () => {
+						const errorMessage = "some-error-message";
+						const errorStack = "some-error-stack-trace";
+						const error = {
+							name: "someError",
+							message: errorMessage,
+							stack: errorStack
+						};
+
+						const knownErrorStatus = 424242;
+						const knownErrorMessage = "known-error-message";
+						class mockKnownError {
+							name = "someKnownError";
+							status = knownErrorStatus;
+							message = knownErrorMessage;
+						}
+						const knownErrorResult = {
+							error: knownErrorMessage,
+							stack: errorStack
+						};
+						beforeEach(() => {
+							mockHandle.mockRejectedValueOnce(error);
+							Object.assign(hookError, { handle: mockHandle });
+							Object.assign(uut, {
+								_errorsDictionary: {
+									[error.name]: mockKnownError
+								}
+							});
+						});
+
+						it("should set response with correct message, status and stack", async () => {
+							await uut.errorHandler(hookError);
+							expect(uut.status).toEqual(knownErrorStatus);
+							expect(uut._controlledResult).toEqual(knownErrorResult);
+						});
+					});
+				});
+
+				describe("when the error is not defined in errors dictionary", () => {
+					const errorMessage = "some-error-message";
+					const errorStack = "some-error-stack-trace";
+					const error = {
+						name: "someError",
+						message: errorMessage,
+						stack: errorStack
+					};
+
+					const defaultFailureStatus = 500;
+					const defaultControlledResult = { error: errorMessage, stack: errorStack };
+
+					beforeEach(() => {
+						mockHandle.mockRejectedValueOnce(error);
+						Object.assign(hookError, { handle: mockHandle });
+
+						Object.assign(uut, {
+							_errorsDictionary: {}
+						});
+					});
+
+					it("should set response with default failure status, error message and stack", async () => {
+						await uut.errorHandler(hookError);
+						expect(uut.status).toBe(defaultFailureStatus);
+						expect(uut._controlledResult).toEqual(defaultControlledResult);
+					});
+				});
+			});
 		});
 	});
 });

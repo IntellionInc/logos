@@ -81,14 +81,11 @@ export class BaseController extends Chain {
 	};
 
 	errorHandler = async hookError => {
-		// console.log("ATTEMPTING HANDLE");
-		// console.log(hookError);
 		try {
 			await hookError.handle();
 		} catch (error) {
-			// console.log(error);
 			const KnownError = this._errorsDictionary[error.name];
-			if (!KnownError) this._setInternalError(error);
+			if (!KnownError) this.#setInternalError(error);
 			if (KnownError) {
 				const knownError = new KnownError(error.message);
 				if (error.hasOwnProperty("handle")) return await this.errorHandler(knownError);
@@ -144,7 +141,7 @@ export class BaseController extends Chain {
 		return this;
 	};
 
-	_setInternalError = error => {
+	#setInternalError = error => {
 		this.status = 500;
 		this._controlledResult = { error: error.message, stack: error.stack };
 	};
