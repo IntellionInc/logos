@@ -1,16 +1,29 @@
-import { Request, Response } from "express";
 import { BaseEntity } from "typeorm";
-import { BaseController } from "../controller";
+import { BaseController, BaseDto } from "../controller";
 
-// export type ControllerType = {
-// 	new (request: Request, response: Response): BaseController;
-// };
-
-export type EntityType = {
+export interface EntityType {
 	new (): BaseEntity;
-};
+}
 
-export type ControllerList = Record<string, typeof BaseController>;
+export interface ControllerList {
+	[key: string]: typeof BaseController;
+}
+export interface DtoList {
+	[key: string]: {
+		[key: string]: typeof BaseDto;
+	};
+}
+
+export interface IDtoInput {
+	[key: string]: any;
+}
+export interface ISerializerInput {
+	[key: string]: any;
+}
+
+export interface ISerializerOutput {
+	[key: string]: any;
+}
 
 export type ResponseHeader = [string, string | string[]];
 export interface IRoutes {
@@ -27,4 +40,17 @@ export interface IPostgresConnection {
 	entities: EntityType[];
 }
 
-export type MethodEnum = "get" | "post" | "patch" | "put" | "delete";
+export type CrudMethodName = "get" | "post" | "patch" | "put" | "delete";
+
+export interface CommunicatorMethod {
+	(url: string, params?: Record<string, any>): Promise<any>;
+}
+export interface HttpRequestArgs {
+	baseURL: string;
+	timeout: number;
+	headers?: Record<string, string>;
+}
+
+export interface ErrorHandler {
+	(...args: any): any;
+}
