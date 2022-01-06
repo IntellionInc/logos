@@ -1,10 +1,10 @@
 import axios, { AxiosInstance } from "axios";
 import {
 	CommunicatorMethod,
-	CommunicatorMethodName,
+	CrudMethodName,
 	ErrorHandler,
 	HttpRequestArgs
-} from "./types";
+} from "../types";
 
 export class BaseHTTPCommunicator {
 	axios: AxiosInstance;
@@ -19,13 +19,7 @@ export class BaseHTTPCommunicator {
 		this.axios = axios.create({
 			...args
 		});
-		const methodOptions: CommunicatorMethodName[] = [
-			"get",
-			"post",
-			"put",
-			"patch",
-			"delete"
-		];
+		const methodOptions: CrudMethodName[] = ["get", "post", "put", "patch", "delete"];
 		methodOptions.forEach(
 			method =>
 				(this[method] = (...args) =>

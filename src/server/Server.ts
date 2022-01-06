@@ -4,7 +4,7 @@ import express from "express";
 import { BaseEntity, Connection, ConnectionManager, ConnectionOptions } from "typeorm";
 import { Chain } from "@intellion/arche";
 import { Router } from "../router";
-import { ControllerList, IRoutes, IPostgresConnection } from "../types";
+import { ControllerList, IRoutes, IPostgresConnection, DtoList } from "../types";
 import { ConnectionManagerController } from "./ConnectionManagerController";
 
 config();
@@ -35,12 +35,14 @@ export class Server extends Chain {
 
 	_attachRouter = ({
 		routes,
-		controllers
+		controllers,
+		dtos
 	}: {
 		routes: IRoutes;
 		controllers: ControllerList;
+		dtos: DtoList;
 	}) => {
-		this.app.use(new Router(routes, controllers).map());
+		this.app.use(new Router(routes, controllers, dtos).map());
 	};
 
 	_onListenCallback = (port: string) => {
@@ -81,8 +83,8 @@ export class Server extends Chain {
 		return this;
 	};
 
-	useRouter = (routes: IRoutes, controllers: ControllerList) => {
-		this.before(this._attachRouter.bind(this, { routes, controllers }));
+	useRouter = (routes: IRoutes, controllers: ControllerList, dtos: DtoList) => {
+		this.before(this._attachRouter.bind(this, { routes, controllers, dtos }));
 		return this;
 	};
 }

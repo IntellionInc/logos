@@ -14,11 +14,12 @@ jest.mock("@intellion/arche", () => ({
 		finally = jest.fn().mockReturnThis();
 	}
 }));
+
+jest.mock("../../src/controller/serializers/BaseSerializer");
+
 describe("Controller: ", () => {
 	let request: Request, response: Response;
 	let uut: MockController;
-
-	const MockInterceptor = { exec: null } as unknown as BaseInterceptor;
 
 	describe("class constructor", () => {
 		let instance: BaseController;
@@ -75,350 +76,621 @@ describe("Controller: ", () => {
 		});
 	});
 
-	describe("class methods", () => {
-		describe("authProtocol", () => {
-			const defaultAuthProtocol = {
-				success: true,
-				data: "Default Auth Protocol"
-			};
-			it("should return successful with the pre-determined data by default", async () => {
-				const result = await uut.authProtocol();
-				expect(result).toEqual(defaultAuthProtocol);
+	describe("essential controller operations", () => {
+		describe("_setInterceptors", () => {
+			let mockBefore: jest.Mock;
+			let interceptors: BaseInterceptor[];
+
+			beforeEach(() => {
+				mockBefore = jest.fn();
+
+				uut.before = mockBefore;
+			});
+
+			describe("when there are no interceptors", () => {
+				interceptors = [];
+
+				beforeEach(() => {
+					uut.interceptors = interceptors;
+				});
+
+				it("should not add any interceptors to 'before' hooks", () => {
+					uut._setInterceptors();
+					expect(mockBefore).not.toHaveBeenCalled();
+				});
+			});
+
+			describe("when some interceptors are provided", () => {
+				const [i1, i2, i3] = [
+					{ exec: null },
+					{ exec: null },
+					{ exec: null }
+				] as BaseInterceptor[];
+
+				beforeEach(() => {
+					[i1, i2, i3].forEach(interceptor => (interceptor.exec = jest.fn()));
+
+					uut.interceptors = [i1, i2, i3];
+				});
+
+				it("should add execution function of each interceptor as a 'before' hook", () => {
+					expect.assertions(3);
+
+					uut._setInterceptors();
+
+					uut.interceptors.forEach(({ exec }, i) =>
+						expect(mockBefore).toHaveBeenNthCalledWith(i + 1, exec)
+					);
+				});
 			});
 		});
-		describe("responseProtocol", () => {
+
+		describe("_control", () => {
+			let mockControlledFunction: jest.Mock;
+
+			const mockControlledResult = { some: "controlled-result" };
+
+			beforeEach(() => {
+				mockControlledFunction = jest.fn().mockResolvedValueOnce(mockControlledResult);
+				uut._controlledFunction = mockControlledFunction;
+			});
+
+			it("should call the controller function, set '_controlledResult' and return the class instance iteslf", async () => {
+				await uut._control();
+				expect(mockControlledFunction).toHaveBeenCalledWith(request);
+				expect(uut._controlledResult).toBe(mockControlledResult);
+			});
+		});
+
+		describe("_setStatus", () => {
+			let mockStatus: jest.Mock;
 			const status = 4242;
-			const meta = { some: "meta-data" };
-			const data = { some: "data" };
-			const options = { status, meta, yield: data };
-			const defaultResponseProtocol = { status, meta, data };
-			beforeEach(() => {
-				Object.assign(uut, { ...options });
-			});
-			it("should return default response fields and their values", async () => {
-				const result = await uut.responseProtocol();
-				expect(result).toEqual(defaultResponseProtocol);
-			});
-		});
-		describe("validationProtocol", () => {
-			const defaultValidationProtocol = {
-				success: true,
-				data: "Default Validation Protocol"
-			};
-			it("should return successful with the pre-determined data by default", async () => {
-				const result = await uut.validationProtocol();
-				expect(result).toEqual(defaultValidationProtocol);
-			});
-		});
-	});
-
-	describe("controls", () => {
-		let someFn: (...args: any[]) => any;
-		beforeEach(() => {
-			someFn = jest.fn();
-			Object.assign(uut, { someFn });
-		});
-		it("should set the controlled function and return the controller instance", () => {
-			const result = uut.controls("someFn");
-			expect(result).toBe(uut);
-			expect(uut._controlledFunction).toBe(someFn);
-		});
-	});
-
-	describe("authenticates", () => {
-		let mockSetAuthInterceptors: jest.Mock;
-		beforeEach(() => {
-			mockSetAuthInterceptors = jest.fn();
-			uut._setAuthInterceptors = mockSetAuthInterceptors;
-		});
-
-		it("shoulde call '_setAuthInterceptors' method and return the class instance itself", () => {
-			const result = uut.authenticates();
-			expect(mockSetAuthInterceptors).toHaveBeenCalled();
-			expect(result).toBe(uut);
-		});
-	});
-
-	describe("serializes", () => {
-		let mockSetSerializers: jest.Mock;
-		beforeEach(() => {
-			mockSetSerializers = jest.fn();
-			uut._setSerializers = mockSetSerializers;
-		});
-		it("should call '_setSerializers' method and reutrn the class instance itself", () => {
-			const result = uut.serializes();
-			expect(mockSetSerializers).toHaveBeenCalled();
-			expect(result).toBe(uut);
-		});
-	});
-
-	describe("_setAuthInterceptors", () => {
-		let mockBefore: jest.Mock;
-		let mockExec: jest.Mock;
-		beforeEach(() => {
-			mockBefore = jest.fn();
-			mockExec = jest.fn();
-			Object.assign(uut, { before: mockBefore });
-			Object.assign(AuthInterceptor, { prototype: { exec: mockExec } });
-		});
-		it("should add a new 'AuthInterceptor' hook among 'before' hooks and return  the class instance itself", () => {
-			const result = uut._setAuthInterceptors();
-			expect(AuthInterceptor).toHaveBeenCalledWith(uut);
-			expect(mockBefore).toHaveBeenCalledWith(mockExec);
-			expect(result).toBe(uut);
-		});
-	});
-
-	describe("_setSerializers", () => {
-		let mockAfter: jest.Mock;
-		let mockSerialize: jest.Mock;
-		beforeEach(() => {
-			mockAfter = jest.fn();
-			mockSerialize = jest.fn();
-			uut._serialize = mockSerialize;
-			Object.assign(uut, { after: mockAfter });
-		});
-		it("should add '_serialize' among 'after' hooks, and return the class instance itself", () => {
-			const result = uut._setSerializers();
-			expect(mockAfter).toHaveBeenCalledWith(mockSerialize);
-			expect(result).toBe(uut);
-		});
-	});
-
-	describe("_setupInterceptors", () => {
-		describe("when interceptors array is empty", () => {
-			beforeEach(() => {
-				uut.interceptors = [];
-				uut.before = jest.fn();
-			});
-			it("should do nothing", () => {
-				const result = uut._setupInterceptors();
-				expect(result).toBe(undefined);
-				expect(uut.before).not.toHaveBeenCalled();
-			});
-		});
-
-		describe("when interceptors array is not empty", () => {
-			let mockExec: any;
-			beforeEach(() => {
-				mockExec = jest.fn();
-				Object.assign(MockInterceptor, { exec: mockExec });
-				uut.interceptors = [MockInterceptor];
-				uut.before = jest.fn();
-			});
-			it("should add interceptors as beforeHooks", () => {
-				uut._setupInterceptors();
-				expect(uut.before).toHaveBeenCalledWith(mockExec);
-			});
-		});
-	});
-
-	describe("_control", () => {
-		const mockRequest = {} as Request;
-		beforeEach(() => {
-			uut.request = mockRequest;
-			Object.assign(uut.response, {
-				status: jest.fn()
-			});
-		});
-		describe("for a successful controlled function call", () => {
-			const result = { success: true, data: "some-success-data" };
-			beforeEach(() => {
-				uut._controlledFunction = jest.fn().mockResolvedValue(result);
-			});
-			it("should call the controlled function with correct parameters", async () => {
-				await uut._control();
-				expect(uut._controlledResult).toBe(result);
-				expect(uut._controlledFunction).toHaveBeenCalledWith(mockRequest);
-			});
-		});
-		describe("for an unsuccessful controlled function call", () => {
-			const result = { success: false, data: "some-failure-data" };
-			beforeEach(() => {
-				uut._controlledFunction = jest.fn().mockResolvedValue(result);
-			});
-			it("should default to a 500 status code", async () => {
-				await uut._control();
-				expect(uut._controlledResult).toBe(result);
-				expect(uut._controlledFunction).toHaveBeenCalledWith(mockRequest);
-				expect(uut.status).toBe(500);
-			});
-		});
-		describe("for a controlled function that throws an error", () => {
-			const error = { message: "some-error-message", stack: { some: "error-stack" } };
-			const result = { success: false, error: error.message, stack: error.stack };
 
 			beforeEach(() => {
-				uut._controlledFunction = jest.fn().mockRejectedValue(error);
+				mockStatus = jest.fn();
+
+				uut.status = status;
+				Object.assign(response, { status: mockStatus });
 			});
-			it("should call the controlledFunction and store error", async () => {
-				await uut._control();
-				expect(uut._controlledResult).toEqual(result);
-				expect(uut._controlledFunction).toHaveBeenCalledWith(mockRequest);
-				expect(uut.status).toBe(500);
+
+			it("should set the response status appropriately", async () => {
+				await uut._setStatus();
+				expect(mockStatus).toHaveBeenCalledWith(status);
 			});
 		});
-		describe("for a controlled function that rejects an error", () => {
-			const error = { message: "some-error-message", stack: { some: "error-stack" } };
-			const result = { success: false, error: error.message, stack: error.stack };
-			beforeEach(() => {
-				uut._controlledFunction = jest.fn().mockRejectedValue(error);
-			});
-			it("should call the controlledFunction and store error", async () => {
-				await uut._control();
-				expect(uut._controlledResult).toEqual(result);
-				expect(uut._controlledFunction).toHaveBeenCalledWith(mockRequest);
-				expect(uut.status).toBe(500);
-			});
-		});
-	});
 
-	describe("_serialize", () => {
-		describe("when there are no errors", () => {
-			const mockResult = { success: null };
-			const mockReturnedData = { some: "data" };
-			beforeEach(() => {
-				Object.assign(uut, { _controlledResult: mockReturnedData });
-				BaseSerializer.serialize = jest.fn().mockResolvedValue(mockResult);
-			});
-
-			afterEach(() => {
-				expect(BaseSerializer.serialize).toHaveBeenCalledWith(
-					uut.Serializer,
-					mockReturnedData
-				);
-				expect(uut._serializedResult).toBe(mockResult);
-			});
-
-			describe("when serialization is successful", () => {
-				describe("when result has a 'data' field", () => {
-					beforeEach(() => {
-						Object.assign(mockResult, { data: mockReturnedData, success: true });
-					});
-
-					it("should set '_serializedResult' appropriately", async () => {
-						await uut._serialize();
-					});
-				});
-				describe("when result does not have a 'data' field", () => {
-					beforeEach(() => {
-						uut._controlledResult = mockReturnedData;
-					});
-
-					it("should set '_serializedResult' appropriately", async () => {
-						await uut._serialize();
-					});
-				});
-			});
-
-			describe("when serialization is unsuccessful", () => {
+		describe("_setYield", () => {
+			const [mockInterception, mockSerializedResult, mockControlledResult] = [
+				{ some: "interception" },
+				{ some: "serialized-result" },
+				{ some: "controlled-result" }
+			];
+			describe("when there is an interception", () => {
 				beforeEach(() => {
-					Object.assign(mockResult, { data: mockReturnedData, success: false });
+					Object.assign(uut, {
+						_interception: mockInterception,
+						_serializedResult: mockSerializedResult,
+						_controlledResult: mockControlledResult
+					});
 				});
 
-				it("should set 'status' to 500", async () => {
-					await uut._serialize();
-					expect(uut.status).toBe(500);
-				});
-			});
-		});
-
-		describe("when there is an error", () => {
-			const mockError = { message: "some-serialization-error", stack: "some-stack" };
-			const mockResult = {
-				success: false,
-				error: "some-serialization-error",
-				stack: "some-stack"
-			};
-			beforeEach(() => {
-				Object.assign(uut, { _controlledResult: { data: "some-data" } });
-				BaseSerializer.serialize = jest.fn().mockRejectedValue(mockError);
-			});
-
-			it("should set 'serializedResult' and 'status' accordingly", async () => {
-				await uut._serialize();
-				expect(uut.status).toBe(500);
-				expect(uut._serializedResult).toEqual(mockResult);
-				expect(BaseSerializer.serialize).toHaveBeenCalledWith(
-					uut.Serializer,
-					uut._controlledResult.data
-				);
-			});
-		});
-	});
-
-	describe("_setYield", () => {
-		describe("when there is an interception", () => {
-			const interception = "some-interception";
-			beforeEach(() => {
-				uut._interception = interception;
-			});
-			it("should set the yield as interception", () => {
-				uut._setYield();
-				expect(uut.yield).toBe(interception);
-			});
-		});
-		describe("when there is no interception", () => {
-			beforeEach(() => {
-				uut._interception = undefined;
-			});
-			describe("when there is a serialized result", () => {
-				const serializedResult = { some: "serialized-result" };
-				beforeEach(() => {
-					uut._serializedResult = serializedResult;
-				});
-				it("should set the yield as serialized result", () => {
+				it("should set the yield as interception data regardless of other fields", () => {
 					uut._setYield();
-					expect(uut.yield).toBe(serializedResult);
+					expect(uut.yield).toBe(mockInterception);
 				});
 			});
-			describe("when there is no serialized result", () => {
-				const controlledResult = {
-					success: true, // value of this boolean is arbitrary.
-					some: "controlled-result"
-				};
+
+			describe("when there is no interception and there is a serialized result", () => {
 				beforeEach(() => {
-					uut._serializedResult = undefined;
-					uut._controlledResult = controlledResult;
+					Object.assign(uut, {
+						_interception: null,
+						_serializedResult: mockSerializedResult,
+						_controlledResult: mockControlledResult
+					});
 				});
+
+				it("should set the yield as serialized data regardless of the controlled result", () => {
+					uut._setYield();
+					expect(uut.yield).toBe(mockSerializedResult);
+				});
+			});
+
+			describe("when there is no interception or serialization", () => {
+				beforeEach(() => {
+					Object.assign(uut, {
+						_interception: null,
+						_serializedResult: null,
+						_controlledResult: mockControlledResult
+					});
+				});
+
 				it("should set the yield as controlled result", () => {
 					uut._setYield();
-					expect(uut.yield).toBe(controlledResult);
+					expect(uut.yield).toBe(mockControlledResult);
 				});
+			});
+		});
+
+		describe("_respond", () => {
+			let mockResponseSend: jest.Mock;
+			let mockResponseProtocol: jest.Mock;
+
+			const mockResponse = { some: "response-data" };
+
+			beforeEach(() => {
+				mockResponseSend = jest.fn();
+				mockResponseProtocol = jest.fn().mockResolvedValueOnce(mockResponse);
+
+				uut.responseProtocol = mockResponseProtocol;
+				Object.assign(response, { send: mockResponseSend });
+			});
+			it("should call the response protocol and set up controller response accordingly", async () => {
+				await uut._respond();
+				expect(mockResponseProtocol).toHaveBeenCalled();
+				expect(mockResponseSend).toHaveBeenCalledWith(mockResponse);
 			});
 		});
 	});
 
-	describe("_respond", () => {
-		let send: jest.Mock;
-		const mockReturnedResponse = { success: true, data: "some-serialized-data" };
-		let mockResponseProtocol: jest.Mock;
-		beforeEach(() => {
-			send = jest.fn();
-			Object.assign(uut.response, { send });
+	describe("additional operations and protocols", () => {
+		describe("controller method assignment", () => {
+			describe("controls", () => {
+				let mockControlledFunction: jest.Mock;
 
-			mockResponseProtocol = jest.fn().mockResolvedValueOnce(mockReturnedResponse);
-			uut._serializedResult = mockReturnedResponse;
-			uut.responseProtocol = mockResponseProtocol;
-		});
-		it("should respond with _serializedResult", async () => {
-			await uut._respond();
-			expect(send).toHaveBeenCalledWith(mockReturnedResponse);
-			expect(mockResponseProtocol).toHaveBeenCalled();
-		});
-	});
+				const methodName = "someMethod";
 
-	describe("_setStatus", () => {
-		let status: jest.Mock;
-		const mockStatus = 4242;
-		beforeEach(() => {
-			status = jest.fn();
-			uut.status = mockStatus;
-			Object.assign(uut.response, { status });
+				beforeEach(() => {
+					mockControlledFunction = jest.fn();
+					Object.assign(uut, { [methodName]: mockControlledFunction });
+				});
+
+				it("should set '_controlledFunction' to desired method and return the class instance itself", () => {
+					const result = uut.controls(methodName);
+					expect(uut._controlledFunction).toBe(mockControlledFunction);
+					expect(result).toBe(uut);
+				});
+			});
 		});
-		it("should set response status", async () => {
-			await uut._setStatus();
-			expect(status).toHaveBeenCalledWith(mockStatus);
+
+		describe("authentication", () => {
+			describe("authProtocol", () => {
+				const defaultAuthProtocol = {
+					success: true,
+					data: "Default Auth Protocol"
+				};
+
+				it("should return successful with the pre-determined data by default", async () => {
+					const result = await uut.authProtocol();
+
+					expect(result).toEqual(defaultAuthProtocol);
+				});
+			});
+
+			describe("authenticates", () => {
+				let mockSetAuthentication: jest.Mock;
+
+				beforeEach(() => {
+					mockSetAuthentication = jest.fn();
+					uut._setAuthentication = mockSetAuthentication;
+				});
+
+				it("should call '_setAuthentication' to setup the auth interceptors, and return the class instance itself", () => {
+					const result = uut.authenticates();
+					expect(mockSetAuthentication).toHaveBeenCalled();
+					expect(result).toBe(uut);
+				});
+			});
+
+			describe("_setAuthenticates", () => {
+				let mockBefore: jest.Mock;
+				let mockExec: jest.Mock;
+
+				beforeEach(() => {
+					mockBefore = jest.fn();
+					mockExec = jest.fn();
+
+					uut.before = mockBefore;
+					Object.assign(AuthInterceptor.prototype, { exec: mockExec });
+				});
+
+				it("should insert an 'AuthInterceptor' as a 'before' hook and return the class instance itself", () => {
+					const result = uut._setAuthentication();
+					expect(AuthInterceptor).toHaveBeenCalledWith(uut);
+					expect(mockBefore).toHaveBeenCalledWith(mockExec);
+					expect(result).toBe(uut);
+				});
+			});
+		});
+
+		describe("serialization and response", () => {
+			describe("responseProtocol", () => {
+				const [meta, mockYield] = [{ some: "meta" }, { some: "yield" }];
+
+				beforeEach(() => {
+					Object.assign(uut, { meta, yield: mockYield });
+				});
+
+				describe("when the response status is success", () => {
+					const status = 242;
+					const successResponse = { status, meta, data: mockYield };
+
+					beforeEach(() => {
+						Object.assign(uut, { status });
+					});
+					it("should attach a data field to response", async () => {
+						const result = await uut.responseProtocol();
+						expect(result).toEqual(successResponse);
+					});
+				});
+
+				describe("when the response status is failure", () => {
+					const status = 542;
+					const failureResponse = { status, meta, some: "yield" };
+
+					beforeEach(() => {
+						Object.assign(uut, { status });
+					});
+
+					it("should not attach a data field and send the yield itself", async () => {
+						const result = await uut.responseProtocol();
+						expect(result).toEqual(failureResponse);
+					});
+				});
+			});
+
+			describe("_serialize", () => {
+				let mockSerialize: jest.Mock;
+				const MockSerializer = {} as typeof BaseSerializer;
+
+				beforeEach(() => {
+					uut.Serializer = MockSerializer;
+				});
+
+				describe("when the serialization is successful", () => {
+					const mockSerializedResult = { some: "serialized-data" };
+
+					beforeEach(() => {
+						mockSerialize = jest.fn().mockResolvedValueOnce(mockSerializedResult);
+
+						BaseSerializer.serialize = mockSerialize;
+					});
+
+					describe("when the result has a data field", () => {
+						const mockControlledResult = { data: "some-data" };
+
+						beforeEach(() => {
+							uut._controlledResult = mockControlledResult;
+						});
+
+						it("should serialize the data field of the result returned by controller method", async () => {
+							await uut._serialize();
+							expect(uut._serializedResult).toBe(mockSerializedResult);
+							expect(mockSerialize).toHaveBeenCalledWith(
+								MockSerializer,
+								mockControlledResult.data
+							);
+						});
+					});
+
+					describe("when the result doesn't have a data field", () => {
+						const mockControlledResult = { some: "controller-result" };
+
+						beforeEach(() => {
+							uut._controlledResult = mockControlledResult;
+						});
+
+						it("should serialize the result returned by controller method", async () => {
+							await uut._serialize();
+							expect(uut._serializedResult).toBe(mockSerializedResult);
+							expect(mockSerialize).toHaveBeenCalledWith(
+								MockSerializer,
+								mockControlledResult
+							);
+						});
+					});
+				});
+
+				describe("when serialization fails", () => {
+					const mockControlledResult = { some: "controller-result" };
+					const failedSerialization = { success: false };
+					const failedStatus = 500;
+
+					beforeEach(() => {
+						uut._controlledResult = mockControlledResult;
+
+						mockSerialize = jest.fn().mockResolvedValueOnce(failedSerialization);
+						BaseSerializer.serialize = mockSerialize;
+					});
+
+					it("should set the status to '500'", async () => {
+						await uut._serialize();
+						expect(uut.status).toBe(failedStatus);
+						expect(uut._serializedResult).toBe(failedSerialization);
+						expect(mockSerialize).toHaveBeenCalledWith(
+							MockSerializer,
+							mockControlledResult
+						);
+					});
+				});
+
+				describe("when there is a serialization error", () => {
+					const mockControlledResult = { some: "controller-result" };
+					const [errorMessage, errorStack] = [
+						"serialization-error-message",
+						"serialization-error-stack"
+					];
+					const serializationError = {
+						message: errorMessage,
+						stack: errorStack
+					};
+					const thrownSerialization = {
+						success: false,
+						error: errorMessage,
+						stack: errorStack
+					};
+
+					beforeEach(() => {
+						uut._controlledResult = mockControlledResult;
+
+						mockSerialize = jest.fn().mockRejectedValueOnce(serializationError);
+						BaseSerializer.serialize = mockSerialize;
+					});
+
+					it("should set the serialization result with error message and error stack", async () => {
+						await uut._serialize();
+						expect(uut._serializedResult).toEqual(thrownSerialization);
+					});
+				});
+			});
+
+			describe("_setSerialization", () => {
+				let mockAfter: jest.Mock;
+				let mockSerialize: jest.Mock;
+
+				beforeEach(() => {
+					mockAfter = jest.fn();
+					mockSerialize = jest.fn();
+
+					uut.after = mockAfter;
+					uut._serialize = mockSerialize;
+				});
+
+				it("should insert '_serialize' method as an 'after' hook and return the class instance itself", () => {
+					const result = uut._setSerialization();
+					expect(mockAfter).toHaveBeenCalledWith(mockSerialize);
+					expect(result).toBe(uut);
+				});
+			});
+
+			describe("serializes", () => {
+				let mockSetSerialization: jest.Mock;
+
+				beforeEach(() => {
+					mockSetSerialization = jest.fn();
+					uut._setSerialization = mockSetSerialization;
+				});
+
+				it("should call '_setSerialization' to setup the serializers, and return the class instance itself", () => {
+					const result = uut.serializes();
+					expect(mockSetSerialization).toHaveBeenCalled();
+					expect(result).toBe(uut);
+				});
+			});
+		});
+
+		describe("request validation", () => {
+			describe("validationProtocol", () => {
+				const defaultValidationData = "Default Validation Protocol";
+				const defaultValidation = { success: true, data: defaultValidationData };
+
+				it("should return successful with the pre-determined data by default", async () => {
+					const result = await uut.validationProtocol();
+					expect(result).toEqual(defaultValidation);
+				});
+			});
+
+			describe("_validate", () => {
+				let mockValidationProtocol: jest.Mock;
+
+				const mockValidation = { some: "validated-data" };
+
+				beforeEach(() => {
+					mockValidationProtocol = jest.fn().mockResolvedValueOnce(mockValidation);
+					uut.validationProtocol = mockValidationProtocol;
+				});
+
+				it("should call the validation protocol for request data", async () => {
+					const result = await uut._validate();
+					expect(mockValidationProtocol).toHaveBeenCalled();
+					expect(result).toBe(mockValidation);
+				});
+			});
+
+			describe("_setValidation", () => {
+				let mockBefore: jest.Mock;
+				let mockValidate: jest.Mock;
+
+				beforeEach(() => {
+					mockBefore = jest.fn();
+					mockValidate = jest.fn();
+
+					uut.before = mockBefore;
+					uut._validate = mockValidate;
+				});
+
+				it("should insert '_validate' as a 'before' hook and return the class instance itself", async () => {
+					const result = uut._setValidation();
+					expect(mockBefore).toHaveBeenCalledWith(mockValidate);
+					expect(result).toBe(uut);
+				});
+			});
+
+			describe("validates", () => {
+				let mockSetValidation: jest.Mock;
+
+				beforeEach(() => {
+					mockSetValidation = jest.fn();
+
+					uut._setValidation = mockSetValidation;
+				});
+
+				it("should call '_setValidation' to setup the validation protocol, and return the class instance itself", () => {
+					const result = uut.validates();
+					expect(mockSetValidation).toHaveBeenCalled();
+					expect(result).toBe(uut);
+				});
+			});
+		});
+
+		describe("error handling", () => {
+			describe("static assignErrors", () => {
+				const mockErrorAssignments = { some: "error-assignment" };
+
+				it("should assign an error dictionary object to '_errorsDictionary' field of the class", () => {
+					BaseController.assignErrors(MockController, mockErrorAssignments);
+					expect(MockController._errorsDictionary).toEqual(mockErrorAssignments);
+				});
+			});
+
+			describe("assignErrors", () => {
+				const mockErrorAssignments = { some: "error-assignment" };
+
+				it("should assign an error dictionary object to '_errorsDictionary' field of a class instance", () => {
+					uut.assignErrors(mockErrorAssignments);
+					expect(uut._errorsDictionary).toEqual(mockErrorAssignments);
+				});
+			});
+
+			describe("errorHandler", () => {
+				let mockHandle: jest.Mock;
+
+				const hookError = { handle: null };
+
+				const errorMessage = "some-error-message";
+				const errorStack = "some-error-stack-trace";
+				const error = {
+					name: "someError",
+					message: errorMessage,
+					stack: errorStack
+				};
+
+				beforeEach(() => {
+					mockHandle = jest.fn();
+				});
+
+				describe("when the error is defined in errors dictionary", () => {
+					describe("when the error has a 'handle' property", () => {
+						const returnedErrorMessage = "returned-error-message";
+						const returnedErrorStack = "returned-error-stack";
+						const mockReturnedError = {
+							name: "someReturnedError",
+							status: 444444,
+							message: returnedErrorMessage,
+							stack: returnedErrorStack
+						};
+
+						const recursiveErrorStatus = 434343;
+						const recursiveErrorMessage = "recursive-error-message";
+						class mockRecursiveKnownError {
+							name = "recursiveKnownError";
+							status = recursiveErrorStatus;
+							message = recursiveErrorMessage;
+							handle = jest.fn().mockRejectedValueOnce(mockReturnedError);
+						}
+
+						const knownErrorStatus = 424242;
+						const knownErrorMessage = "known-error-message";
+						const knownErrorStack = "known-error-stack-trace";
+						class mockKnownError {
+							name = "someKnownError";
+							status = knownErrorStatus;
+							message = knownErrorMessage;
+							stack = knownErrorStack;
+						}
+
+						const defaultControlledResult = {
+							error: knownErrorMessage,
+							stack: returnedErrorStack
+						};
+
+						beforeEach(() => {
+							mockHandle.mockRejectedValueOnce(error);
+
+							Object.assign(hookError, { handle: mockHandle });
+
+							Object.assign(uut, {
+								_errorsDictionary: {
+									[error.name]: mockRecursiveKnownError,
+									[mockReturnedError.name]: mockKnownError
+								}
+							});
+						});
+
+						it("should perform error handling recursively", async () => {
+							await uut.errorHandler(hookError);
+							expect(uut.status).toBe(knownErrorStatus);
+							expect(uut._controlledResult).toEqual(defaultControlledResult);
+						});
+					});
+
+					describe("when the error does not have a 'handle' property", () => {
+						const knownErrorStatus = 424242;
+						const knownErrorMessage = "known-error-message";
+						class mockKnownError {
+							name = "someKnownError";
+							status = knownErrorStatus;
+							message = knownErrorMessage;
+						}
+						const knownErrorResult = {
+							error: knownErrorMessage,
+							stack: errorStack
+						};
+						beforeEach(() => {
+							mockHandle.mockRejectedValueOnce(error);
+							Object.assign(hookError, { handle: mockHandle });
+							Object.assign(uut, {
+								_errorsDictionary: {
+									[error.name]: mockKnownError
+								}
+							});
+						});
+
+						it("should set response with correct message, status and stack", async () => {
+							await uut.errorHandler(hookError);
+							expect(uut.status).toEqual(knownErrorStatus);
+							expect(uut._controlledResult).toEqual(knownErrorResult);
+						});
+					});
+				});
+
+				describe("when the error is not defined in errors dictionary", () => {
+					const errorMessage = "some-error-message";
+					const errorStack = "some-error-stack-trace";
+					const error = {
+						name: "someError",
+						message: errorMessage,
+						stack: errorStack
+					};
+
+					const defaultFailureStatus = 500;
+					const defaultControlledResult = { error: errorMessage, stack: errorStack };
+
+					beforeEach(() => {
+						mockHandle.mockRejectedValueOnce(error);
+						Object.assign(hookError, { handle: mockHandle });
+
+						Object.assign(uut, {
+							_errorsDictionary: {}
+						});
+					});
+
+					it("should set response with default failure status, error message and stack", async () => {
+						await uut.errorHandler(hookError);
+						expect(uut.status).toBe(defaultFailureStatus);
+						expect(uut._controlledResult).toEqual(defaultControlledResult);
+					});
+				});
+			});
 		});
 	});
 });
