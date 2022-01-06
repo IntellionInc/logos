@@ -1,6 +1,6 @@
+import { ISerializerInput, ISerializerOutput, SerializerFieldStatus } from "../../types";
 import { TypeMismatchError, SerializationError } from "../errors";
 
-type ObjStatus = "getter" | "allowed" | "optional";
 export class BaseSerializer {
 	static findGetters = (Schema: typeof BaseSerializer) =>
 		Object.getOwnPropertyNames(Schema.prototype)
@@ -16,7 +16,7 @@ export class BaseSerializer {
 
 	static setOutput = async (
 		Schema: typeof BaseSerializer,
-		inputField: Record<string, any>
+		inputField: ISerializerInput
 	) => {
 		const getters: string[] = BaseSerializer.findGetters(Schema);
 
@@ -26,7 +26,7 @@ export class BaseSerializer {
 
 	static serialize = async (
 		Schema: typeof BaseSerializer,
-		input: Record<string, any> | Record<string, any>[]
+		input: ISerializerInput | ISerializerInput[]
 	) =>
 		Array.isArray(input)
 			? await Promise.all(
@@ -38,12 +38,12 @@ export class BaseSerializer {
 class Result {
 	errors: any[] = [];
 	shemaKeys: any[];
-	outputCandidate: Record<string, any> = {};
+	outputCandidate: ISerializerOutput = {};
 
 	constructor(
 		public getters: string[],
 		public serializer: BaseSerializer,
-		public inputField: Record<string, any> | Record<string, any>[]
+		public inputField: ISerializerInput | ISerializerInput[]
 	) {
 		this.shemaKeys = [...Object.keys(serializer), ...getters];
 	}
@@ -94,21 +94,21 @@ class TypeMatcher {
 		public schemaValue: any,
 		public inputValue: any,
 		public getters: string[],
-		public outputValue: Record<string, any> | Record<string, any>[]
+		public outputValue: ISerializerOutput | ISerializerOutput[]
 	) {}
 
-	isGetter = (): ObjStatus | undefined =>
+	isGetter = (): SerializerFieldStatus | undefined =>
 		this.getters.includes(this.schemaKey) ? "getter" : undefined;
 
-	isAllowed = (): ObjStatus | undefined =>
+	isAllowed = (): SerializerFieldStatus | undefined =>
 		this.schemaValue.hasSameTypeAs(this.inputValue) ? "allowed" : undefined;
 
-	isAllowedFlex = (): ObjStatus | undefined =>
+	isAllowedFlex = (): SerializerFieldStatus | undefined =>
 		this.schemaValue.some(i => i && i.hasSameTypeAs(this.inputValue))
 			? "allowed"
 			: undefined;
 
-	isNullable = (): ObjStatus | undefined =>
+	isNullable = (): SerializerFieldStatus | undefined =>
 		!this.inputValue && this.schemaValue.some(i => i == undefined)
 			? "optional"
 			: undefined;

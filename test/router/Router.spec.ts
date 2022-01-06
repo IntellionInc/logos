@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { BaseController, BaseDto } from "src/controller";
 import { Router } from "src/router";
-import { ControllerList } from "src/types";
+import { ControllerList, DtoList } from "src/types";
 
 jest.mock("express", () => ({
 	express: class MockExpress {
@@ -14,9 +14,7 @@ jest.mock("src/controller/Controller.ts");
 describe("Router", () => {
 	const mockRoutes = {};
 	const mockControllers = {} as ControllerList;
-	const mockDtos = <Record<string, Record<string, typeof BaseDto>>>(
-		(<unknown>{ controller: { method: jest.fn() } })
-	);
+	const mockDtos = <DtoList>(<unknown>{ controller: { method: jest.fn() } });
 	let uut: any;
 	beforeEach(() => {
 		uut = new Router(mockRoutes, mockControllers, mockDtos);

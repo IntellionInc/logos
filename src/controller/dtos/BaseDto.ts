@@ -1,8 +1,9 @@
 import { IntellionType } from "../models";
 import { TypeMismatchError } from "../errors";
+import { IDtoInput } from "../../types";
 
 export class BaseDto {
-	static validate = (Schema: typeof BaseDto, input: Record<string, any>) => {
+	static validate = (Schema: typeof BaseDto, input: IDtoInput) => {
 		const dto = new Schema();
 		return new TypeMatcher(input, dto).match();
 	};
@@ -12,10 +13,7 @@ export class TypeMatcher {
 	schemaKeys: string[];
 	expected: typeof IntellionType | typeof IntellionType[];
 	received: any;
-	constructor(
-		public input: Record<string, any> | Record<string, any>[],
-		public dto: BaseDto
-	) {
+	constructor(public input: IDtoInput | IDtoInput[], public dto: BaseDto) {
 		this.schemaKeys = [...Object.keys(dto)];
 	}
 
@@ -43,7 +41,9 @@ export class TypeMatcher {
 		this.schemaKeys.forEach(key => {
 			[this.expected, this.received] = [this.dto[key], this.input[key]];
 			status = this.isFlexible() ? this.getMatchFlex() : this.getMatch();
-			if (!status) throw new TypeMismatchError(key, this.expected, this.received);
+			if (!status) {
+				throw new TypeMismatchError(key, this.expected, this.received);
+			}
 		});
 		return status;
 	};

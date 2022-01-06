@@ -54,3 +54,5 @@ export interface HttpRequestArgs {
 export interface ErrorHandler {
 	(...args: any): any;
 }
+
+export type SerializerFieldStatus = "getter" | "allowed" | "optional";

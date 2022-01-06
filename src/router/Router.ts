@@ -1,6 +1,6 @@
 import express, { IRouter, Request, Response } from "express";
-import { BaseController, BaseDto } from "index";
-import { ControllerList, IRoutes, MethodEnum } from "../types";
+import { BaseController } from "../controller";
+import { ControllerList, DtoList, IRoutes, CrudMethodName } from "../types";
 
 export class Router {
 	Controller: typeof BaseController;
@@ -9,7 +9,7 @@ export class Router {
 	constructor(
 		public routes: IRoutes,
 		public controllers: ControllerList,
-		public dtos: Record<string, Record<string, typeof BaseDto | undefined>>
+		public dtos: DtoList
 	) {}
 
 	map = () => this._map(this.routes);
@@ -28,7 +28,9 @@ export class Router {
 			if (typeof layer[key] === "string") {
 				router.route("/");
 				const matcher = (<string>layer[key]).split(" => ");
-				router.route("/")[<MethodEnum>key](this.runControllerMethod.bind(this, matcher));
+				router
+					.route("/")
+					[<CrudMethodName>key](this.runControllerMethod.bind(this, matcher));
 			}
 		});
 		return router;
