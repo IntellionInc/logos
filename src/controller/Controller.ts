@@ -62,7 +62,7 @@ export class BaseController extends Chain {
 		return this;
 	};
 
-	validationProtocol = async () => ({
+	validationProtocol = async (): Promise<unknown> => ({
 		success: true,
 		data: "Default Validation Protocol"
 	});
@@ -88,7 +88,8 @@ export class BaseController extends Chain {
 			if (!KnownError) this.#setInternalError(error);
 			if (KnownError) {
 				const knownError = new KnownError(error.message);
-				if (error.hasOwnProperty("handle")) return await this.errorHandler(knownError);
+				if (knownError.hasOwnProperty("handle"))
+					return await this.errorHandler(knownError);
 				this.status = knownError.status;
 				this._controlledResult = { error: knownError.message, stack: error.stack };
 			}

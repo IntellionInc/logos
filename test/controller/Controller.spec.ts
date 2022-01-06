@@ -566,21 +566,20 @@ describe("Controller: ", () => {
 
 				const hookError = { handle: null };
 
+				const errorMessage = "some-error-message";
+				const errorStack = "some-error-stack-trace";
+				const error = {
+					name: "someError",
+					message: errorMessage,
+					stack: errorStack
+				};
+
 				beforeEach(() => {
 					mockHandle = jest.fn();
 				});
 
 				describe("when the error is defined in errors dictionary", () => {
 					describe("when the error has a 'handle' property", () => {
-						const errorMessage = "some-error-message";
-						const errorStack = "some-error-stack-trace";
-						const error = {
-							name: "someError",
-							message: errorMessage,
-							stack: errorStack,
-							handle: null
-						};
-
 						const returnedErrorMessage = "returned-error-message";
 						const returnedErrorStack = "returned-error-stack";
 						const mockReturnedError = {
@@ -619,10 +618,6 @@ describe("Controller: ", () => {
 
 							Object.assign(hookError, { handle: mockHandle });
 
-							Object.assign(error, {
-								handle: jest.fn()
-							});
-
 							Object.assign(uut, {
 								_errorsDictionary: {
 									[error.name]: mockRecursiveKnownError,
@@ -639,14 +634,6 @@ describe("Controller: ", () => {
 					});
 
 					describe("when the error does not have a 'handle' property", () => {
-						const errorMessage = "some-error-message";
-						const errorStack = "some-error-stack-trace";
-						const error = {
-							name: "someError",
-							message: errorMessage,
-							stack: errorStack
-						};
-
 						const knownErrorStatus = 424242;
 						const knownErrorMessage = "known-error-message";
 						class mockKnownError {
