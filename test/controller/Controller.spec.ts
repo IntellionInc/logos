@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Chain } from "@intellion/arche";
 import { BaseController, AuthInterceptor, BaseInterceptor } from "src/controller";
 import { BaseSerializer } from "src/controller/serializers";
+import { STATUS } from "src/controller/StatusCodes";
 
 class MockController extends BaseController {}
 
@@ -44,7 +45,7 @@ describe("Controller: ", () => {
 				response: {},
 				interceptors: [],
 				Serializer: BaseSerializer,
-				status: 200
+				status: STATUS.SUCCESS
 			};
 
 			Object.keys(properties).forEach(key => {
@@ -393,7 +394,7 @@ describe("Controller: ", () => {
 				describe("when serialization fails", () => {
 					const mockControlledResult = { some: "controller-result" };
 					const failedSerialization = { success: false };
-					const failedStatus = 500;
+					const failedStatus = STATUS.INTERNAL_SERVER_ERROR;
 
 					beforeEach(() => {
 						uut._controlledResult = mockControlledResult;
@@ -402,7 +403,7 @@ describe("Controller: ", () => {
 						BaseSerializer.serialize = mockSerialize;
 					});
 
-					it("should set the status to '500'", async () => {
+					it(`should set the status to ${STATUS.INTERNAL_SERVER_ERROR}`, async () => {
 						await uut._serialize();
 						expect(uut.status).toBe(failedStatus);
 						expect(uut._serializedResult).toBe(failedSerialization);
@@ -672,7 +673,7 @@ describe("Controller: ", () => {
 						stack: errorStack
 					};
 
-					const defaultFailureStatus = 500;
+					const defaultFailureStatus = STATUS.INTERNAL_SERVER_ERROR;
 					const defaultControlledResult = { error: errorMessage, stack: errorStack };
 
 					beforeEach(() => {

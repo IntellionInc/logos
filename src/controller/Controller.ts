@@ -1,11 +1,13 @@
-import { Chain, HookError } from "@intellion/arche";
+import { Chain } from "@intellion/arche";
 import { Request, Response } from "express";
-import { BaseDto } from ".";
+
+import { BaseDto } from "./dtos";
+import { STATUS } from "./StatusCodes";
 import { BaseInterceptor, AuthInterceptor } from "./interceptors";
 import { BaseSerializer } from "./serializers";
 
 export class BaseController extends Chain {
-	status = 200;
+	status = STATUS.SUCCESS;
 	meta: Record<any, any> = {};
 	_interception: string | null = null;
 
@@ -16,6 +18,7 @@ export class BaseController extends Chain {
 	public dto: typeof BaseDto;
 
 	public _controlledFunction: any;
+
 	public _controlledResult: any;
 	public _serializedResult: Record<any, any>;
 
@@ -143,7 +146,7 @@ export class BaseController extends Chain {
 	};
 
 	#setInternalError = error => {
-		this.status = 500;
+		if (this.status === STATUS.SUCCESS) this.status = STATUS.INTERNAL_SERVER_ERROR;
 		this._controlledResult = { error: error.message, stack: error.stack };
 	};
 
@@ -172,5 +175,5 @@ export class BaseController extends Chain {
 		stack: error.stack
 	});
 
-	#setStatusToFailed = () => (this.status = 500);
+	#setStatusToFailed = () => (this.status = STATUS.INTERNAL_SERVER_ERROR);
 }
