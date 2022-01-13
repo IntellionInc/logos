@@ -65,13 +65,16 @@ export class Server extends Chain {
 			name: connectionName,
 			...dbConfig
 		});
+
 		dbConfig.entities.forEach((Entity: typeof BaseEntity) =>
 			Entity.useConnection(connection)
 		);
 		await this._establishConnection(connection);
 	};
 
-	_establishConnection = async (connection: Connection) => await connection.connect();
+	_establishConnection = async (connection: Connection) => {
+		await connection.connect();
+	};
 
 	usePostgres = (connectionName: string, dbConfig: IPostgresConnection) => {
 		this.before(this._createConnection.bind(this, connectionName, dbConfig));
