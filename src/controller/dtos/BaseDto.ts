@@ -41,8 +41,23 @@ export class TypeMatcher {
 		this.schemaKeys.forEach(key => {
 			[this.expected, this.received] = [this.dto[key], this.input[key]];
 			status = this.isFlexible() ? this.getMatchFlex() : this.getMatch();
-			if (!status) throw new TypeMismatchError(key, this.expected, this.received);
+			if (!status)
+				throw new TypeMismatchError(
+					key,
+					this.#formulateErrorMessageDefinition(),
+					this.received
+				);
 		});
 		return status;
+	};
+
+	#formulateErrorMessageDefinition = (): string => {
+		const getDefinitionOrUndefinedMessage = (
+			item: { definition: string } | undefined
+		): string => (item ? item.definition : "not defined");
+
+		if (!Array.isArray(this.expected))
+			return getDefinitionOrUndefinedMessage(this.expected);
+		return this.expected.map(getDefinitionOrUndefinedMessage).join(", ");
 	};
 }

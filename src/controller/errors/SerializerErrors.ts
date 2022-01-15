@@ -1,7 +1,9 @@
 export class TypeMismatchError extends Error {
 	name = "TypeMismatchError";
 	constructor(key: string, expected: any, received: any) {
-		super(`Expected ${key} to be ${expected.definition}, but received "${received}"`);
+		super(
+			`Expected ${key} to confirm to definition(s): "${expected}", but received "${received}"`
+		);
 	}
 }
 

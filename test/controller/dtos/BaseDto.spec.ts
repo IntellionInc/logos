@@ -40,7 +40,7 @@ describe("BaseDto: ", () => {
 						BaseDto.validate(MockDtoInstance, input);
 					} catch (err) {
 						expect(err).toEqual(Error("some-mismatch-error"));
-						expect(TypeMismatchError).toHaveBeenCalledWith("key2", String, 42);
+						expect(TypeMismatchError).toHaveBeenCalledWith("key2", String.definition, 42);
 					}
 				});
 			});
@@ -55,7 +55,11 @@ describe("BaseDto: ", () => {
 						BaseDto.validate(MockDtoInstance, input);
 					} catch (err) {
 						expect(err).toEqual(Error("some-mismatch-error"));
-						expect(TypeMismatchError).toHaveBeenCalledWith("key2", String, undefined);
+						expect(TypeMismatchError).toHaveBeenCalledWith(
+							"key2",
+							String.definition,
+							undefined
+						);
 					}
 				});
 			});
@@ -109,6 +113,8 @@ describe("BaseDto: ", () => {
 
 			describe("when some properties are wrongly typed", () => {
 				const input = { key1: "value1", key2: 42 };
+				const errorMessageDefinition = "a string, not defined";
+
 				beforeEach(() => {
 					class MockDto extends BaseDto {
 						key1 = String;
@@ -126,7 +132,7 @@ describe("BaseDto: ", () => {
 						expect(err).toEqual(Error("some-mismatch-error"));
 						expect(TypeMismatchError).toHaveBeenCalledWith(
 							"key2",
-							[String, undefined],
+							errorMessageDefinition,
 							42
 						);
 					}

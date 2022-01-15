@@ -122,7 +122,11 @@ describe("BaseSerializer: ", () => {
 							await BaseSerializer.serialize(MockSerializerInstance, input);
 						} catch (err) {
 							expect(err).toEqual(Error("some-serialization-error"));
-							expect(TypeMismatchError).toHaveBeenCalledWith("key2", String, 42);
+							expect(TypeMismatchError).toHaveBeenCalledWith(
+								"key2",
+								String.definition,
+								42
+							);
 							expect(SerializationError).toHaveBeenCalledWith([
 								Error("some-mismatch-error")
 							]);
@@ -148,7 +152,11 @@ describe("BaseSerializer: ", () => {
 							await BaseSerializer.serialize(MockSerializerInstance, input);
 						} catch (err) {
 							expect(err).toEqual(Error("some-serialization-error"));
-							expect(TypeMismatchError).toHaveBeenCalledWith("key2", String, undefined);
+							expect(TypeMismatchError).toHaveBeenCalledWith(
+								"key2",
+								String.definition,
+								undefined
+							);
 						}
 					});
 				});
@@ -234,6 +242,7 @@ describe("BaseSerializer: ", () => {
 
 				describe("when some properties are wrongly typed", () => {
 					const input = { key1: "value1", key2: 42 };
+					const errorMessageDefinition = "a string, a string that contains an @ sign";
 
 					beforeEach(() => {
 						class MockSerializer extends BaseSerializer {
@@ -250,7 +259,42 @@ describe("BaseSerializer: ", () => {
 							await BaseSerializer.serialize(MockSerializerInstance, input);
 						} catch (err) {
 							expect(err).toEqual(Error("some-serialization-error"));
-							expect(TypeMismatchError).toHaveBeenCalledWith("key2", [String, Email], 42);
+							expect(TypeMismatchError).toHaveBeenCalledWith(
+								"key2",
+								errorMessageDefinition,
+								42
+							);
+							expect(SerializationError).toHaveBeenCalledWith([
+								Error("some-mismatch-error")
+							]);
+						}
+					});
+				});
+
+				describe("when some optional properties are wrongly typed", () => {
+					const input = { key1: "value1", key2: 42 };
+					const errorMessageDefinition = "a string, not defined";
+
+					beforeEach(() => {
+						class MockSerializer extends BaseSerializer {
+							key1 = String;
+							key2 = [String, undefined];
+						}
+						MockSerializerInstance = MockSerializer;
+					});
+
+					it("should throw the appropriate error", async () => {
+						expect.assertions(3);
+
+						try {
+							await BaseSerializer.serialize(MockSerializerInstance, input);
+						} catch (err) {
+							expect(err).toEqual(Error("some-serialization-error"));
+							expect(TypeMismatchError).toHaveBeenCalledWith(
+								"key2",
+								errorMessageDefinition,
+								42
+							);
 							expect(SerializationError).toHaveBeenCalledWith([
 								Error("some-mismatch-error")
 							]);

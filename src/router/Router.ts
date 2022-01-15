@@ -1,5 +1,5 @@
 import express, { IRouter, Request, Response } from "express";
-import { BaseController } from "../controller";
+import { BaseController, BaseDto } from "../controller";
 import { ControllerList, DtoList, IRoutes, CrudMethodName } from "../types";
 
 export class Router {
@@ -65,9 +65,31 @@ export class Router {
 	};
 
 	#attachDto = ([controllerName, methodName]) => {
-		const dto = this.dtos[controllerName]?.[methodName];
-		Object.assign(this.controller, { dto });
+		const returnedDtos = this.dtos[controllerName]?.[methodName];
+		if (returnedDtos == null) return;
+
+		if (this.#isASingleDtoReturned(returnedDtos)) {
+			this.#attachDtoToControllerBody(<typeof BaseDto>returnedDtos);
+		} else {
+			this.#attachDtoListToControllerFields(<Record<string, typeof BaseDto>>returnedDtos);
+		}
 	};
 
 	#attachErrors = () => this.controller.assignErrors(this.Controller._errorsDictionary);
+
+	#isASingleDtoReturned = (
+		returnedDtos: typeof BaseDto | Record<string, typeof BaseDto>
+	): boolean => returnedDtos.validate != null;
+
+	#attachDtoToControllerBody = (returnedDto: typeof BaseDto): void => {
+		Object.assign(this.controller, { dtos: { body: returnedDto } });
+	};
+
+	#attachDtoListToControllerFields = (dtoList: Record<string, typeof BaseDto>): void => {
+		Object.keys(dtoList).forEach(key => {
+			Object.assign(this.controller, {
+				dtos: { ...this.controller.dtos, [key]: dtoList[key] }
+			});
+		});
+	};
 }

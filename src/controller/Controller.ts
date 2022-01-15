@@ -1,10 +1,10 @@
 import { Chain } from "@intellion/arche";
 import { Request, Response } from "express";
 
-import { BaseDto } from "./dtos";
 import { STATUS } from "./StatusCodes";
 import { BaseInterceptor, AuthInterceptor } from "./interceptors";
 import { BaseSerializer } from "./serializers";
+import { IControllerDtos } from "../types";
 
 export class BaseController extends Chain {
 	status = STATUS.SUCCESS;
@@ -15,7 +15,7 @@ export class BaseController extends Chain {
 	public interceptors: BaseInterceptor[] = [];
 
 	public Serializer = BaseSerializer;
-	public dto: typeof BaseDto;
+	public dtos: IControllerDtos = { body: null };
 
 	public _controlledFunction: any;
 

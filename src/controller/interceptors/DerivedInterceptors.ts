@@ -1,13 +1,14 @@
-import { BaseInterceptor } from ".";
+import { BaseInterceptor } from "./BaseInterceptor";
+import { STATUS, ERROR_MESSAGES } from "../StatusCodes";
 
 export class AuthInterceptor extends BaseInterceptor {
 	protocol = this.controller.authProtocol;
-	failureStatus = 401;
-	failureMessage = "Unauthorized";
+	failureStatus = STATUS.UNAUTHORIZED;
+	failureMessage = ERROR_MESSAGES.UNAUTHORIZED;
 }
 
 export class ValidationInterceptor extends BaseInterceptor {
 	protocol = this.controller.validationProtocol;
-	failureStatus = 400;
-	failureMessage = "Invalid arguments";
+	failureStatus = STATUS.BAD_REQUEST;
+	failureMessage = ERROR_MESSAGES.BAD_REQUEST;
 }
