@@ -1,4 +1,4 @@
-import { IntellionType } from "..";
+import { IntellionType } from "../models";
 import { ISerializerInput, ISerializerOutput, SerializerFieldStatus } from "../../types";
 import { TypeMismatchError, SerializationError } from "../errors";
 
