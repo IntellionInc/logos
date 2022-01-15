@@ -10,8 +10,17 @@ export interface ControllerList {
 }
 export interface DtoList {
 	[key: string]: {
-		[key: string]: typeof BaseDto;
+		[key: string]:
+			| typeof BaseDto
+			| {
+					[key: string]: typeof BaseDto;
+			  };
 	};
+}
+
+export interface IControllerDtos {
+	body: typeof BaseDto;
+	[key: string]: typeof BaseDto;
 }
 
 export interface IDtoInput {

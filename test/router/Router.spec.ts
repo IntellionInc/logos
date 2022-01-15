@@ -159,7 +159,7 @@ describe("Router", () => {
 					assignErrors: mockAssignErrors,
 					controls: mockControls,
 					x: mockExec,
-					dto: null
+					dtos: { body: null }
 				});
 
 				Object.assign(uut, { controllers: { controller: MockController } });
@@ -180,23 +180,49 @@ describe("Router", () => {
 			});
 
 			describe("dto assignment", () => {
-				const mockDto = {} as typeof BaseDto;
+				const mockDto = { validate: null } as unknown as typeof BaseDto;
 				const mockDtos = {};
 
 				describe("when there is a proper dto", () => {
-					beforeEach(() => {
-						Object.assign(mockDtos, {
-							[mockControllerName]: {
-								[mockMethodName]: mockDto
-							}
+					describe("when the dto is non-specific", () => {
+						beforeEach(() => {
+							Object.assign(mockDtos, {
+								[mockControllerName]: {
+									[mockMethodName]: mockDto
+								}
+							});
+
+							uut.dtos = mockDtos;
 						});
 
-						uut.dtos = mockDtos;
+						it("should find and assign the proper dto to body dto field in the controller", async () => {
+							await uut.runControllerMethod(matchers, ...args);
+							expect(uut.controller.dtos.body).toBe(mockDto);
+						});
 					});
 
-					it("should find and assign the proper dto to controller instance", async () => {
-						await uut.runControllerMethod(matchers, ...args);
-						expect(uut.controller.dto).toEqual(mockDto);
+					describe("when the dto is for specific fields in the controller", () => {
+						const bodyDto = {} as typeof BaseDto;
+						const paramsDto = {} as typeof BaseDto;
+						const queryDto = {} as typeof BaseDto;
+
+						beforeEach(() => {
+							Object.assign(mockDtos, {
+								[mockControllerName]: {
+									[mockMethodName]: { body: bodyDto, params: paramsDto, query: queryDto }
+								}
+							});
+
+							uut.dtos = mockDtos;
+						});
+
+						it("should assign each dto field to respective controller dto field", async () => {
+							await uut.runControllerMethod(matchers, ...args);
+							const { body, params, query } = uut.controller.dtos;
+							expect(body).toBe(bodyDto);
+							expect(params).toBe(paramsDto);
+							expect(query).toBe(queryDto);
+						});
 					});
 				});
 
