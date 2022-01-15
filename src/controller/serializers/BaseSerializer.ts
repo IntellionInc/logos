@@ -1,3 +1,4 @@
+import { IntellionType } from "..";
 import { ISerializerInput, ISerializerOutput, SerializerFieldStatus } from "../../types";
 import { TypeMismatchError, SerializationError } from "../errors";
 
@@ -126,7 +127,11 @@ class TypeMatcher {
 		this.outputValue[schemaKey] = this.typeVariants[status];
 
 		if (this.outputValue[schemaKey] === undefined)
-			return new TypeMismatchError(schemaKey, schemaValue, inputValue);
+			return new TypeMismatchError(
+				schemaKey,
+				this.#formulateErrorMessageDefinition(schemaValue),
+				inputValue
+			);
 	};
 
 	getMatchFlex = () => {
@@ -137,8 +142,23 @@ class TypeMatcher {
 		this.outputValue[schemaKey] = this.typeVariants[status];
 
 		if (this.outputValue[schemaKey] === undefined)
-			return new TypeMismatchError(schemaKey, schemaValue, inputValue);
+			return new TypeMismatchError(
+				schemaKey,
+				this.#formulateErrorMessageDefinition(schemaValue),
+				inputValue
+			);
 	};
 
 	match = () => (this.isFlexible() ? this.getMatchFlex() : this.getMatch());
+
+	#formulateErrorMessageDefinition = (
+		schemaValue: typeof IntellionType | typeof IntellionType[]
+	): string => {
+		const getDefinitionOrUndefinedMessage = (
+			item: { definition: string } | undefined
+		): string => (item ? item.definition : "not defined");
+
+		if (!Array.isArray(schemaValue)) return getDefinitionOrUndefinedMessage(schemaValue);
+		return schemaValue.map(getDefinitionOrUndefinedMessage).join(", ");
+	};
 }
