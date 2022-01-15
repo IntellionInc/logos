@@ -79,7 +79,7 @@ export class Router {
 
 	#isASingleDtoReturned = (
 		returnedDtos: typeof BaseDto | Record<string, typeof BaseDto>
-	): boolean => returnedDtos.hasOwnProperty("validate");
+	): boolean => returnedDtos.validate != null;
 
 	#attachDtoToControllerBody = (returnedDto: typeof BaseDto): void => {
 		Object.assign(this.controller, { dtos: { body: returnedDto } });

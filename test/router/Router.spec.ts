@@ -180,7 +180,7 @@ describe("Router", () => {
 			});
 
 			describe("dto assignment", () => {
-				const mockDto = { validate: null } as unknown as typeof BaseDto;
+				const mockDto = { validate: jest.fn() } as unknown as typeof BaseDto;
 				const mockDtos = {};
 
 				describe("when there is a proper dto", () => {
