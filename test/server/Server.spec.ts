@@ -23,7 +23,7 @@ jest.mock("@intellion/arche", () => ({
 
 describe("Server: ", () => {
 	let uut: Server;
-	const defaultPort = "5432";
+	const defaultPort = "8000";
 
 	beforeEach(() => {
 		uut = new Server();

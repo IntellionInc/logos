@@ -16,7 +16,7 @@ export class Server extends Chain {
 	server: http.Server;
 
 	connectionManager: ConnectionManager;
-	defaultPort = "5432";
+	defaultPort = "8000";
 
 	constructor() {
 		super();
