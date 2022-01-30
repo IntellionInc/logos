@@ -143,8 +143,16 @@ describe("Server: ", () => {
 			const mockConnectionManager = {};
 			let boundCallback: jest.Mock;
 			let mockCallback: jest.Mock;
+
+			const mockControllerYield = {
+				success: true,
+				data: mockConnectionManager,
+				error: null
+			};
+
 			let actual: Record<string, string>;
 			const dbPort = "4242";
+
 			beforeEach(() => {
 				actual = process.env;
 
@@ -158,27 +166,32 @@ describe("Server: ", () => {
 				server.listen = mockServerListen;
 				Object.assign(uut, { server });
 			});
+
 			afterEach(() => {
 				process.env = actual;
 			});
+
 			describe("when a port is specified", () => {
 				beforeEach(() => {
 					process.env.PORT = dbPort;
 				});
+
 				it("should use the specified port", async () => {
 					await uut._serve();
-					expect(uut.yield).toBe(mockConnectionManager);
+					expect(uut.yield).toEqual(mockControllerYield);
 					expect(mockServerListen).toHaveBeenCalledWith(dbPort, boundCallback);
 					expect(mockCallback).toHaveBeenCalledWith(uut, dbPort);
 				});
 			});
+
 			describe("when a port is not specified", () => {
 				beforeEach(() => {
 					process.env = {};
 				});
+
 				it("should use the default port", async () => {
 					await uut._serve();
-					expect(uut.yield).toBe(mockConnectionManager);
+					expect(uut.yield).toEqual(mockControllerYield);
 					expect(mockServerListen).toHaveBeenCalledWith(defaultPort, boundCallback);
 					expect(mockCallback).toHaveBeenCalledWith(uut, defaultPort);
 				});
@@ -186,13 +199,16 @@ describe("Server: ", () => {
 		});
 
 		describe("_createConnectionManager", () => {
-			const mockConnectionManager = {} as ConnectionManager;
 			let connectionManagerSpy: jest.SpyInstance;
+
+			const mockConnectionManager = {} as ConnectionManager;
+
 			beforeEach(() => {
 				connectionManagerSpy = jest
 					.spyOn(typeorm, "ConnectionManager")
 					.mockReturnValue(mockConnectionManager);
 			});
+
 			it("should create a Connection Manager and set 'ConnectionManagerController' instance accordingly", () => {
 				uut._createConnectionManager();
 				expect(connectionManagerSpy).toHaveBeenCalled();

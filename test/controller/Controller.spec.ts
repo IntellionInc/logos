@@ -1,6 +1,11 @@
 import { Request, Response } from "express";
 import { Chain } from "@intellion/arche";
-import { BaseController, AuthInterceptor, BaseInterceptor } from "src/controller";
+import {
+	BaseController,
+	BaseInterceptor,
+	AuthInterceptor,
+	ValidationInterceptor
+} from "src/controller";
 import { BaseSerializer } from "src/controller/serializers";
 import { STATUS } from "src/controller/StatusCodes";
 
@@ -53,10 +58,10 @@ describe("Controller: ", () => {
 				expect(instance[key as keyof MockController]).toEqual(properties[key]);
 			});
 
-			const { _control, _setStatus, _setYield, _respond } = instance;
+			const { _control, _setStatus, _setResponseData, _respond } = instance;
 			expect(instance.main).toHaveBeenCalledWith(_control);
 			expect(instance.finally).toHaveBeenNthCalledWith(1, _setStatus);
-			expect(instance.finally).toHaveBeenNthCalledWith(2, _setYield);
+			expect(instance.finally).toHaveBeenNthCalledWith(2, _setResponseData);
 			expect(instance.finally).toHaveBeenNthCalledWith(3, _respond);
 		});
 	});
@@ -160,12 +165,13 @@ describe("Controller: ", () => {
 			});
 		});
 
-		describe("_setYield", () => {
+		describe("_setResponseData", () => {
 			const [mockInterception, mockSerializedResult, mockControlledResult] = [
 				{ some: "interception" },
 				{ some: "serialized-result" },
 				{ some: "controlled-result" }
 			];
+
 			describe("when there is an interception", () => {
 				beforeEach(() => {
 					Object.assign(uut, {
@@ -175,9 +181,9 @@ describe("Controller: ", () => {
 					});
 				});
 
-				it("should set the yield as interception data regardless of other fields", () => {
-					uut._setYield();
-					expect(uut.yield).toBe(mockInterception);
+				it("should set 'responseData' as interception data regardless of other fields", () => {
+					uut._setResponseData();
+					expect(uut.responseData).toBe(mockInterception);
 				});
 			});
 
@@ -190,9 +196,9 @@ describe("Controller: ", () => {
 					});
 				});
 
-				it("should set the yield as serialized data regardless of the controlled result", () => {
-					uut._setYield();
-					expect(uut.yield).toBe(mockSerializedResult);
+				it("should set 'responseData' as serialized data regardless of the controlled result", () => {
+					uut._setResponseData();
+					expect(uut.responseData).toBe(mockSerializedResult);
 				});
 			});
 
@@ -205,9 +211,9 @@ describe("Controller: ", () => {
 					});
 				});
 
-				it("should set the yield as controlled result", () => {
-					uut._setYield();
-					expect(uut.yield).toBe(mockControlledResult);
+				it("should set 'responseData' as controlled result", () => {
+					uut._setResponseData();
+					expect(uut.responseData).toBe(mockControlledResult);
 				});
 			});
 		});
@@ -225,6 +231,7 @@ describe("Controller: ", () => {
 				uut.responseProtocol = mockResponseProtocol;
 				Object.assign(response, { send: mockResponseSend });
 			});
+
 			it("should call the response protocol and set up controller response accordingly", async () => {
 				await uut._respond();
 				expect(mockResponseProtocol).toHaveBeenCalled();
@@ -305,34 +312,45 @@ describe("Controller: ", () => {
 
 		describe("serialization and response", () => {
 			describe("responseProtocol", () => {
-				const [meta, mockYield] = [{ some: "meta" }, { some: "yield" }];
+				const [meta, responseData] = [{ some: "meta" }, { some: "response-data" }];
 
 				beforeEach(() => {
-					Object.assign(uut, { meta, yield: mockYield });
+					Object.assign(uut, { meta, responseData });
 				});
 
 				describe("when the response status is success", () => {
 					const status = 242;
-					const successResponse = { status, meta, data: mockYield };
+					const successResponse = { status, meta, data: responseData };
 
 					beforeEach(() => {
 						Object.assign(uut, { status });
 					});
-					it("should attach a data field to response", async () => {
+
+					it("should send the proper response with 'status', 'meta' and 'data' fields", async () => {
 						const result = await uut.responseProtocol();
 						expect(result).toEqual(successResponse);
 					});
 				});
 
 				describe("when the response status is failure", () => {
+					let mockConsoleTrace: jest.Mock;
+					let actualConsoleTrace: any;
+
 					const status = 542;
-					const failureResponse = { status, meta, some: "yield" };
+					const failureResponse = { status, meta, error: responseData };
 
 					beforeEach(() => {
-						Object.assign(uut, { status });
+						mockConsoleTrace = jest.fn();
+						actualConsoleTrace = console.trace;
+						console.trace = mockConsoleTrace;
+						Object.assign(uut, { status, stack: mockConsoleTrace });
 					});
 
-					it("should not attach a data field and send the yield itself", async () => {
+					afterEach(() => {
+						console.trace = actualConsoleTrace;
+					});
+
+					it("should attach 'error' and 'stack' fields to response message, it should not attach a 'data' field", async () => {
 						const result = await uut.responseProtocol();
 						expect(result).toEqual(failureResponse);
 					});
@@ -426,7 +444,7 @@ describe("Controller: ", () => {
 					};
 					const thrownSerialization = {
 						success: false,
-						error: errorMessage,
+						error: serializationError,
 						stack: errorStack
 					};
 
@@ -509,19 +527,20 @@ describe("Controller: ", () => {
 
 			describe("_setValidation", () => {
 				let mockBefore: jest.Mock;
-				let mockValidate: jest.Mock;
+				let mockExec: jest.Mock;
 
 				beforeEach(() => {
 					mockBefore = jest.fn();
-					mockValidate = jest.fn();
+					mockExec = jest.fn();
 
 					uut.before = mockBefore;
-					uut._validate = mockValidate;
+					Object.assign(ValidationInterceptor.prototype, { exec: mockExec });
 				});
 
 				it("should insert '_validate' as a 'before' hook and return the class instance itself", async () => {
 					const result = uut._setValidation();
-					expect(mockBefore).toHaveBeenCalledWith(mockValidate);
+					expect(ValidationInterceptor).toHaveBeenCalledWith(uut);
+					expect(mockBefore).toHaveBeenCalledWith(mockExec);
 					expect(result).toBe(uut);
 				});
 			});
@@ -610,7 +629,7 @@ describe("Controller: ", () => {
 						}
 
 						const defaultControlledResult = {
-							error: knownErrorMessage,
+							error: new mockKnownError(),
 							stack: returnedErrorStack
 						};
 
@@ -637,15 +656,18 @@ describe("Controller: ", () => {
 					describe("when the error does not have a 'handle' property", () => {
 						const knownErrorStatus = 424242;
 						const knownErrorMessage = "known-error-message";
+
 						class mockKnownError {
 							name = "someKnownError";
 							status = knownErrorStatus;
 							message = knownErrorMessage;
 						}
-						const knownErrorResult = {
-							error: knownErrorMessage,
+
+						const mockControlledResult = {
+							error: new mockKnownError(),
 							stack: errorStack
 						};
+
 						beforeEach(() => {
 							mockHandle.mockRejectedValueOnce(error);
 							Object.assign(hookError, { handle: mockHandle });
@@ -659,7 +681,7 @@ describe("Controller: ", () => {
 						it("should set response with correct message, status and stack", async () => {
 							await uut.errorHandler(hookError);
 							expect(uut.status).toEqual(knownErrorStatus);
-							expect(uut._controlledResult).toEqual(knownErrorResult);
+							expect(uut._controlledResult).toEqual(mockControlledResult);
 						});
 					});
 				});
@@ -674,7 +696,7 @@ describe("Controller: ", () => {
 					};
 
 					const defaultFailureStatus = STATUS.INTERNAL_SERVER_ERROR;
-					const defaultControlledResult = { error: errorMessage, stack: errorStack };
+					const defaultControlledResult = { error, stack: errorStack };
 
 					beforeEach(() => {
 						mockHandle.mockRejectedValueOnce(error);

@@ -2,14 +2,14 @@ import { Chain } from "@intellion/arche";
 import { Request, Response } from "express";
 
 import { STATUS } from "./StatusCodes";
-import { BaseInterceptor, AuthInterceptor } from "./interceptors";
+import { BaseInterceptor, AuthInterceptor, ValidationInterceptor } from "./interceptors";
 import { BaseSerializer } from "./serializers";
 import { IControllerDtos } from "../types";
 
 export class BaseController extends Chain {
 	status = STATUS.SUCCESS;
 	meta: Record<any, any> = {};
-	_interception: string | null = null;
+	_interception: any = null;
 
 	public user: any;
 	public interceptors: BaseInterceptor[] = [];
@@ -21,6 +21,7 @@ export class BaseController extends Chain {
 
 	public _controlledResult: any;
 	public _serializedResult: Record<any, any>;
+	public responseData: any;
 
 	public static _errorsDictionary = {};
 	public _errorsDictionary = {};
@@ -31,7 +32,7 @@ export class BaseController extends Chain {
 		this._setInterceptors();
 		this.main(this._control)
 			.finally(this._setStatus)
-			.finally(this._setYield)
+			.finally(this._setResponseData)
 			.finally(this._respond);
 	}
 
@@ -94,7 +95,7 @@ export class BaseController extends Chain {
 				if (knownError.hasOwnProperty("handle"))
 					return await this.errorHandler(knownError);
 				this.status = knownError.status;
-				this._controlledResult = { error: knownError.message, stack: error.stack };
+				this._controlledResult = { error: knownError, stack: error.stack };
 			}
 		}
 	};
@@ -111,8 +112,9 @@ export class BaseController extends Chain {
 
 	_setStatus = async () => this.response.status(this.status);
 
-	_setYield = () =>
-		(this.yield = this._interception || this._serializedResult || this._controlledResult);
+	_setResponseData = () =>
+		(this.responseData =
+			this._interception || this._serializedResult || this._controlledResult);
 
 	_respond = async () => {
 		this.response.send(await this.responseProtocol());
@@ -138,28 +140,29 @@ export class BaseController extends Chain {
 		return this;
 	};
 
-	_validate = async () => this.validationProtocol();
-
 	_setValidation = () => {
-		this.before(this._validate);
+		this.before(new ValidationInterceptor(this).exec);
 		return this;
 	};
 
+	_validate = async () => this.validationProtocol();
+
 	#setInternalError = error => {
 		if (this.status === STATUS.SUCCESS) this.status = STATUS.INTERNAL_SERVER_ERROR;
-		this._controlledResult = { error: error.message, stack: error.stack };
+		this._controlledResult = { error, stack: error.stack };
 	};
 
 	#sendSuccessResponse = () => ({
 		status: this.status,
 		meta: this.meta,
-		data: this.yield
+		data: this.responseData
 	});
 
 	#sendFailureResponse = () => ({
 		status: this.status,
 		meta: this.meta,
-		...this.yield
+		error: this.responseData,
+		stack: console.trace()
 	});
 
 	#isSuccessfulResponseStatus = () => this.status >= 200 && this.status < 300;
@@ -171,7 +174,7 @@ export class BaseController extends Chain {
 
 	#setSerializationError = (error: Error) => ({
 		success: false,
-		error: error.message,
+		error,
 		stack: error.stack
 	});
 

@@ -52,7 +52,7 @@ export class Server extends Chain {
 	_serve = async () => {
 		const port = process.env.PORT || this.defaultPort;
 		await this.server.listen(port, this._onListenCallback.bind(this, port));
-		this.yield = this.connectionManager;
+		this.yield = { success: true, data: this.connectionManager, error: null };
 	};
 
 	_createConnectionManager = () => {
