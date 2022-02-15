@@ -20,3 +20,10 @@ export class Boolean extends IntellionType {
 	static hasSameTypeAs = (test: any) => typeof test === "boolean";
 	static definition = "a boolean";
 }
+
+export class Date extends IntellionType {
+	static hasSameTypeAs = (test: any) => {
+		return test instanceof global.Date;
+	};
+	static definition = "a date instance";
+}

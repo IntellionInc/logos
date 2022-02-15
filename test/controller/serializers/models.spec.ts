@@ -3,6 +3,14 @@ import * as Models from "src/controller/models";
 type ModelName = "String" | "Email" | "Number" | "Boolean";
 
 describe("IntellionType", () => {
+	beforeAll(() => {
+		jest.useFakeTimers();
+	});
+
+	afterAll(() => {
+		jest.useRealTimers();
+	});
+
 	describe("class constructor", () => {
 		class MockIntellionType extends Models.IntellionType {
 			static hasSameTypeAs = jest.fn();
@@ -46,11 +54,18 @@ describe("IntellionType", () => {
 		definition: "a boolean",
 		match: false,
 		mismatch: "some-string"
+	},
+	{
+		name: "Date",
+		definition: "a boolean",
+		match: new Date(1609459200000), // 2021-01-01
+		mismatch: "Thu Jan 01 1970 02:00:00 GMT+0200 (GMT+03:00)"
 	}
 ].forEach(({ name, definition, match, mismatch }) => {
 	describe(name, () => {
 		const uut = Models[name as ModelName];
 		const instance = new uut();
+
 		it("should extend 'IntellionType", () => {
 			expect(instance).toBeInstanceOf(Models.IntellionType);
 		});
@@ -68,6 +83,7 @@ describe("IntellionType", () => {
 						expect(uut.hasSameTypeAs(match)).toBe(true);
 					});
 				});
+
 				describe("when there is a type mismatch", () => {
 					it("should return false", () => {
 						expect(uut.hasSameTypeAs(mismatch)).toBe(false);
