@@ -56,10 +56,11 @@ export class BaseController extends Chain {
 		return this;
 	};
 
-	responseProtocol = async (): Promise<any> =>
-		this.#isSuccessfulResponseStatus()
+	async responseProtocol(): Promise<any> {
+		return (await this.#isSuccessfulResponseStatus())
 			? this.#sendSuccessResponse()
 			: this.#sendFailureResponse();
+	}
 
 	serializes = () => {
 		this._setSerialization();
