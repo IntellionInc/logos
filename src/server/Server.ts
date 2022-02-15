@@ -66,9 +66,9 @@ export class Server extends Chain {
 			...dbConfig
 		});
 
-		dbConfig.entities.forEach((Entity: typeof BaseEntity) =>
-			Entity.useConnection(connection)
-		);
+		dbConfig.entities.forEach((Entity: typeof BaseEntity) => {
+			Entity.useConnection(connection);
+		});
 		await this._establishConnection(connection);
 	};
 
