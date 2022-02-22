@@ -38,7 +38,7 @@ export class BaseSerializer {
 
 class Result {
 	errors: any[] = [];
-	shemaKeys: any[];
+	schemaKeys: any[];
 	outputCandidate: ISerializerOutput = {};
 
 	constructor(
@@ -46,7 +46,7 @@ class Result {
 		public serializer: BaseSerializer,
 		public inputField: ISerializerInput | ISerializerInput[]
 	) {
-		this.shemaKeys = [...Object.keys(serializer), ...getters];
+		this.schemaKeys = [...Object.keys(serializer), ...getters];
 	}
 
 	getRequiredType = async (schemaKey: string) => {
@@ -59,8 +59,8 @@ class Result {
 
 	validate = async (schemaKey: string) => {
 		const schemaValue = await this.getRequiredType(schemaKey);
-
 		const inputValue = this.inputField[schemaKey];
+
 		return new TypeMatcher(
 			schemaKey,
 			schemaValue,
@@ -71,7 +71,7 @@ class Result {
 	};
 
 	_findErrors = async () => {
-		this.errors = (await Promise.all(this.shemaKeys.map(await this.validate))).filter(
+		this.errors = (await Promise.all(this.schemaKeys.map(await this.validate))).filter(
 			e => !!e
 		);
 	};
