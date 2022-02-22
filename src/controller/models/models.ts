@@ -27,3 +27,8 @@ export class Date extends IntellionType {
 	};
 	static definition = "a date instance";
 }
+
+export class Array extends IntellionType {
+	static hasSameTypeAs = (test: any) => global.Array.isArray(test);
+	static definition = "an array";
+}

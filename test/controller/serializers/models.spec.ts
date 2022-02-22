@@ -1,6 +1,6 @@
 import * as Models from "src/controller/models";
 
-type TypeName = "String" | "Email" | "Number" | "Boolean";
+type TypeName = "String" | "Email" | "Number" | "Boolean" | "Date" | "Array";
 
 describe("IntellionType: ", () => {
 	beforeAll(() => {
@@ -60,6 +60,12 @@ const testedTypes = [
 		definition: "a date instance",
 		match: new Date(1609459200000), // 2021-01-01
 		mismatch: "Thu Jan 01 1970 02:00:00 GMT+0200 (GMT+03:00)"
+	},
+	{
+		typeName: "Array",
+		definition: "an array",
+		match: ["element1", "element2"],
+		mismatch: 424242
 	}
 ];
 
