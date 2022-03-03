@@ -59,7 +59,19 @@ const testedTypes = [
 		typeName: "Date",
 		definition: "a date instance",
 		match: new Date(1609459200000), // 2021-01-01
-		mismatch: "Thu Jan 01 1970 02:00:00 GMT+0200 (GMT+03:00)"
+		mismatch: "this is not a date"
+	},
+	{
+		typeName: "Date",
+		definition: "a date instance",
+		match: "Thu Jan 01 1970 02:00:00 GMT+0200 (GMT+03:00)", // 2021-01-01
+		mismatch: "we're only friends"
+	},
+	{
+		typeName: "Date",
+		definition: "a date instance",
+		match: new Date(1609459200000), // 2021-01-01
+		mismatch: 3
 	},
 	{
 		typeName: "Array",
@@ -85,16 +97,12 @@ describe.each(testedTypes)("$typeName: ", ({ typeName, definition, match, mismat
 		});
 
 		describe("hasSameTypeAs", () => {
-			describe("when there is no type mismatch", () => {
-				it("should return true", () => {
-					expect(uut.hasSameTypeAs(match)).toBe(true);
-				});
+			it(`should return true when provided with '${match}'`, () => {
+				expect(uut.hasSameTypeAs(match)).toBe(true);
 			});
 
-			describe("when there is a type mismatch", () => {
-				it("should return false", () => {
-					expect(uut.hasSameTypeAs(mismatch)).toBe(false);
-				});
+			it(`should return false when provided with '${mismatch}'`, () => {
+				expect(uut.hasSameTypeAs(mismatch)).toBe(false);
 			});
 		});
 	});

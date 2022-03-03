@@ -23,7 +23,8 @@ export class Boolean extends IntellionType {
 
 export class Date extends IntellionType {
 	static hasSameTypeAs = (test: any) => {
-		return test instanceof global.Date;
+		const parsed = global.Date.parse(test);
+		return test instanceof global.Date || (parsed === parsed && typeof test !== "number");
 	};
 	static definition = "a date instance";
 }
