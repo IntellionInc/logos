@@ -21,10 +21,12 @@ describe("BaseHTTPCommunicator", () => {
 
 	describe("constructor", () => {
 		const properties = ["axios", "get", "post", "put", "patch", "delete"];
+
 		it("should be defined with correct properties", () => {
 			expect(uut).toBeDefined();
 			expect(uut).toBeInstanceOf(MockCommunicator);
 			expect(axios.create).toHaveBeenCalledWith(mockConfig);
+
 			properties.forEach(property => {
 				expect(uut).toHaveProperty(property);
 			});
@@ -32,27 +34,36 @@ describe("BaseHTTPCommunicator", () => {
 	});
 
 	describe("class methods", () => {
-		const methods = ["get", "post", "put", "patch", "delete"];
 		const mockArgs = "some-url";
-		methods.forEach(method => {
-			describe(method, () => {
+
+		const methods = [
+			{ methodName: "get" },
+			{ methodName: "post" },
+			{ methodName: "put" },
+			{ methodName: "patch" },
+			{ methodName: "delete" }
+		];
+
+		describe.each(methods)("$methodName", ({ methodName }) => {
+			beforeEach(() => {
+				uut.axios[methodName] = jest.fn().mockResolvedValue({ data: "some-result" });
+			});
+
+			it(`should call the ${methodName} method of the axios instance`, async () => {
+				const result = await uut[methodName](mockArgs);
+				expect(result).toBe("some-result");
+				expect(uut.axios[methodName]).toHaveBeenCalledWith(mockArgs);
+			});
+
+			describe("when there is a request error", () => {
 				beforeEach(() => {
-					uut.axios[method] = jest.fn().mockResolvedValue({ data: "some-result" });
+					uut.axios[methodName] = jest.fn().mockRejectedValue({ message: "some-error" });
 				});
-				it(`should call the ${method} method of the axios instance`, async () => {
-					const result = await uut[method](mockArgs);
-					expect(result).toBe("some-result");
-					expect(uut.axios[method]).toHaveBeenCalledWith(mockArgs);
-				});
-				describe("when there is a request error", () => {
-					beforeEach(() => {
-						uut.axios[method] = jest.fn().mockRejectedValue({ message: "some-error" });
-					});
-					it("should call the error handler", async () => {
-						await uut[method](mockArgs);
-						expect(uut.axios[method]).toHaveBeenCalledWith(mockArgs);
-						expect(mockErrorHandler).toHaveBeenCalledWith({ message: "some-error" });
-					});
+
+				it("should call the error handler", async () => {
+					await uut[methodName](mockArgs);
+					expect(uut.axios[methodName]).toHaveBeenCalledWith(mockArgs);
+					expect(mockErrorHandler).toHaveBeenCalledWith({ message: "some-error" });
 				});
 			});
 		});

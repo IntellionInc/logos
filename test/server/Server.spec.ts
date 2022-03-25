@@ -33,6 +33,7 @@ describe("Server: ", () => {
 		it("should be defined", () => {
 			expect(uut).toBeDefined();
 		});
+
 		it("should have correct properties", () => {
 			expect(uut).toHaveProperty("app");
 			expect(uut).toHaveProperty("defaultPort");
@@ -77,9 +78,11 @@ describe("Server: ", () => {
 				app.use = mockUseMethod;
 				Object.assign(uut, { app });
 			});
+
 			it("should attach middleware to app", () => {
-				uut._attachMiddleware(middleware);
 				expect.assertions(2);
+				uut._attachMiddleware(middleware);
+
 				middleware.forEach(method => {
 					expect(mockUseMethod).toHaveBeenCalledWith(method);
 				});
@@ -88,6 +91,7 @@ describe("Server: ", () => {
 
 		describe("_attachRouter", () => {
 			const app = { use: null };
+
 			const mockRouter = {} as IRouter;
 			const routes = {} as IRoutes;
 			const controllers = {} as ControllerList;
@@ -95,6 +99,7 @@ describe("Server: ", () => {
 
 			let mockUseMethod: jest.Mock;
 			let mockRouterMap: jest.Mock;
+
 			beforeEach(() => {
 				mockUseMethod = jest.fn();
 				mockRouterMap = jest.fn().mockReturnValue(mockRouter);
@@ -106,9 +111,9 @@ describe("Server: ", () => {
 					map: mockRouterMap
 				});
 			});
+
 			it("should attach routes to app", () => {
 				uut._attachRouter({ routes, controllers, dtos });
-
 				expect(Router).toHaveBeenCalledWith(routes, controllers, dtos);
 				expect(mockUseMethod).toHaveBeenCalled();
 				expect(mockRouterMap).toHaveBeenCalled();
@@ -127,9 +132,11 @@ describe("Server: ", () => {
 				actualConsoleLog = console.log;
 				console.log = mockConsoleLog;
 			});
+
 			afterEach(() => {
 				console.log = actualConsoleLog;
 			});
+
 			it("should log the correct message to console", () => {
 				uut._onListenCallback(dbPort);
 				expect(mockConsoleLog).toHaveBeenCalledWith(listenMessage);
@@ -219,18 +226,22 @@ describe("Server: ", () => {
 
 		describe("_createConnection", () => {
 			const connectionName = "some-connection-name";
+
 			const mockEntity1 = new BaseEntity();
 			const mockEntity2 = new BaseEntity();
+
 			const dbConfig = {
 				some: "config",
 				entities: [mockEntity1, mockEntity2]
 			} as unknown as IPostgresConnection;
+
 			const options = { name: connectionName, ...dbConfig };
 			const mockReturnedConnection = {};
 
 			let mockCreate: jest.Mock;
 			let mockEstablishConnection: jest.Mock;
 			let mockUseConnection: jest.Mock;
+
 			beforeEach(() => {
 				mockCreate = jest.fn().mockReturnValueOnce(mockReturnedConnection);
 				mockEstablishConnection = jest.fn();
@@ -249,6 +260,7 @@ describe("Server: ", () => {
 			afterEach(() => {
 				jest.restoreAllMocks();
 			});
+
 			it("should create a new connection instance", async () => {
 				await uut._createConnection(connectionName, dbConfig);
 				expect(mockCreate).toHaveBeenCalledWith(options);
@@ -262,10 +274,12 @@ describe("Server: ", () => {
 			const mockConnection = { connect: null } as typeorm.Connection;
 			let mockConnect: jest.Mock;
 			const mockResolvedConnection = {};
+
 			beforeEach(() => {
 				mockConnect = jest.fn().mockResolvedValueOnce(mockResolvedConnection);
 				mockConnection.connect = mockConnect;
 			});
+
 			it("should call 'connect' method of the Entity", async () => {
 				await uut._establishConnection(mockConnection);
 				expect(mockConnect).toHaveBeenCalled();
@@ -276,10 +290,12 @@ describe("Server: ", () => {
 			const connectionName = "some-connection-name";
 			const dbConfig = { some: "config" } as unknown as IPostgresConnection;
 			let boundCreateConnection: jest.Mock;
+
 			beforeEach(() => {
 				boundCreateConnection = jest.fn();
 				uut._createConnection.bind = jest.fn().mockReturnValue(boundCreateConnection);
 			});
+
 			it("should set a before hook with '_createConnection'", () => {
 				const result = uut.usePostgres(connectionName, dbConfig);
 				expect(uut._createConnection.bind).toHaveBeenCalledWith(
@@ -294,7 +310,9 @@ describe("Server: ", () => {
 
 		describe("useMiddleware", () => {
 			const middleware = [jest.fn()];
+
 			let boundAttachMiddleware: jest.Mock;
+
 			beforeEach(() => {
 				boundAttachMiddleware = jest.fn();
 				uut._attachMiddleware.bind = jest.fn().mockReturnValue(boundAttachMiddleware);
@@ -309,9 +327,11 @@ describe("Server: ", () => {
 		});
 
 		describe("useRouter", () => {
+			const dtos = {};
+
 			const routes = {} as IRoutes;
 			const controllers = {} as ControllerList;
-			const dtos = {};
+
 			let boundAttachRouter: jest.Mock;
 			beforeEach(() => {
 				boundAttachRouter = jest.fn();

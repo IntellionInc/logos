@@ -76,11 +76,14 @@ describe("BaseDto: ", () => {
 					MockDtoInstance = MockDto;
 				});
 
-				[
+				const dtoCases = [
 					{ value: "value2", type: "string" },
 					{ value: 42, type: "number" }
-				].forEach(({ value, type }) => {
-					describe(`when the value is of type ${type} and the type is allowed`, () => {
+				];
+
+				describe.each(dtoCases)(
+					"when the value is of type $type and the type is allowed",
+					({ value }) => {
 						const input = { key1: "value1", key2: value };
 						const output = true;
 
@@ -88,8 +91,8 @@ describe("BaseDto: ", () => {
 							const result = BaseDto.validate(MockDtoInstance, input);
 							expect(result).toBe(output);
 						});
-					});
-				});
+					}
+				);
 			});
 
 			describe("when some properties are optional", () => {

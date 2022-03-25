@@ -173,11 +173,14 @@ describe("BaseSerializer: ", () => {
 							MockSerializerInstance = MockSerializer;
 						});
 
-						[
+						const serializerCases = [
 							{ value: "value2", type: "string" },
 							{ value: 42, type: "number" }
-						].forEach(({ value, type }) => {
-							describe(`when the value is of type ${type} and the type is allowed`, () => {
+						];
+
+						describe.each(serializerCases)(
+							"when the value is of type $type and the type is allowed",
+							({ value }) => {
 								const input = { key1: "value1", key2: value, key3: "value3" };
 								const output = { key1: "value1", key2: value };
 
@@ -188,8 +191,8 @@ describe("BaseSerializer: ", () => {
 									);
 									expect(result).toEqual(output);
 								});
-							});
-						});
+							}
+						);
 					});
 
 					describe("when some properties are optional", () => {

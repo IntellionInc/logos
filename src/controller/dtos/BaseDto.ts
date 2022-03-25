@@ -41,6 +41,7 @@ export class TypeMatcher {
 		this.schemaKeys.forEach(key => {
 			[this.expected, this.received] = [this.dto[key], this.input[key]];
 			status = this.isFlexible() ? this.getMatchFlex() : this.getMatch();
+
 			if (!status)
 				throw new TypeMismatchError(
 					key,

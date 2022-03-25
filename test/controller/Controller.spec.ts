@@ -73,11 +73,11 @@ describe("Controller: ", () => {
 	});
 
 	describe("syntactic sugar", () => {
-		["one", "and"].forEach(property => {
-			describe(property, () => {
-				it("should be equal to the class instance itself", () => {
-					expect(uut[property]).toBe(uut);
-				});
+		const selfCases = [{ property: "one" }, { property: "and" }];
+
+		describe.each(selfCases)("$property", ({ property }) => {
+			it("should be equal to the class instance itself", () => {
+				expect(uut[property]).toBe(uut);
 			});
 		});
 	});
