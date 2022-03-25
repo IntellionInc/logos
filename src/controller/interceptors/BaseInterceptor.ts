@@ -4,7 +4,7 @@ import { BaseController } from "../Controller";
 export abstract class BaseInterceptor extends Chain {
 	protocol: (...args: any[]) => any;
 	failureStatus: number;
-	failureMessage: string;
+	failureMessage: () => string;
 	data: string;
 	error?: any;
 	success = true;
@@ -27,7 +27,7 @@ export abstract class BaseInterceptor extends Chain {
 	};
 
 	setControllerInterception = () => {
-		if (!this.success) this.controller._interception = this.failureMessage;
+		if (!this.success) this.controller._interception = this.failureMessage();
 	};
 
 	setYield = () => {

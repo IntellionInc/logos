@@ -10,7 +10,7 @@ jest.mock("@intellion/arche", () => ({
 
 class MockInterceptor extends BaseInterceptor {
 	failureStatus = 5555;
-	failureMessage = "some-failure-message";
+	failureMessage = () => "some-failure-message";
 }
 
 describe("BaseInterceptor: ", () => {
@@ -105,18 +105,21 @@ describe("BaseInterceptor: ", () => {
 
 		describe("setYield", () => {
 			const data = "some-data";
-			[true, false].forEach(successCase => {
-				describe(`for ${
-					successCase ? "a succecssful" : "an unsuccessful"
-				} protocol execution`, () => {
-					beforeEach(() => {
-						uut.success = successCase;
-						uut.data = data;
-					});
-					it("should set controller yield to success status", () => {
-						uut.setYield();
-						expect(uut.yield).toEqual({ success: successCase, data });
-					});
+
+			const yieldCases = [
+				{ success: true, description: "for a successful protocol execution" },
+				{ success: false, description: "for an unsuccessful protocol execution" }
+			];
+
+			describe.each(yieldCases)("$description", ({ success }) => {
+				beforeEach(() => {
+					uut.success = success;
+					uut.data = data;
+				});
+
+				it("should set controller yield to success status", () => {
+					uut.setYield();
+					expect(uut.yield).toEqual({ success, data });
 				});
 			});
 		});

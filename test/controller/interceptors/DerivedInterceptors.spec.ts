@@ -19,45 +19,68 @@ jest.mock("src/controller/StatusCodes", () => ({
 }));
 
 describe("Derived Interceptors: ", () => {
-	[
+	const derivedInterceptorTestCases = [
 		{
-			ctx: "AuthInterceptor: ",
-			SubClass: AuthInterceptor,
+			definition: "AuthInterceptor: ",
+			Interceptor: AuthInterceptor,
 			controllerProtocol: "authProtocol",
 			failureStatus: STATUS.UNAUTHORIZED,
-			failureMessage: ERROR_MESSAGES.UNAUTHORIZED
+			error: undefined,
+			failureResponse: ERROR_MESSAGES.UNAUTHORIZED
 		},
 		{
-			ctx: "ValidationInterceptor: ",
-			SubClass: ValidationInterceptor,
+			definition: "ValidationInterceptor: ",
+			Interceptor: ValidationInterceptor,
 			controllerProtocol: "validationProtocol",
 			failureStatus: STATUS.BAD_REQUEST,
-			failureMessage: ERROR_MESSAGES.BAD_REQUEST
+			error: { message: "custom-bad-request-error-message" },
+			failureResponse: ERROR_MESSAGES.BAD_REQUEST
 		}
-	].forEach(({ ctx, SubClass, controllerProtocol, failureStatus, failureMessage }) => {
-		describe(ctx, () => {
+	];
+
+	describe.each(derivedInterceptorTestCases)(
+		"$definition: ",
+		({ Interceptor, controllerProtocol, error, failureStatus, failureResponse }) => {
 			let uut: any;
 			const mockProtocol = jest.fn();
 			const MockController = {
 				[controllerProtocol]: mockProtocol
 			} as unknown as BaseController;
+
 			beforeEach(() => {
-				uut = new SubClass(MockController);
+				uut = new Interceptor(MockController);
 			});
 
 			it("should be defined", () => {
 				expect(uut).toBeDefined();
-				expect(uut).toBeInstanceOf(SubClass);
+				expect(uut).toBeInstanceOf(Interceptor);
 			});
+
 			it("should extend 'BaseInterceptor'", () => {
 				expect(uut).toBeInstanceOf(BaseInterceptor);
 			});
 
-			it("should have correct properties", () => {
+			it("should have correct 'protocol' and 'failureStatus'", () => {
 				expect(uut.protocol).toBe(mockProtocol);
 				expect(uut.failureStatus).toBe(failureStatus);
-				expect(uut.failureMessage).toBe(failureMessage);
 			});
-		});
-	});
+
+			describe("when no custom error functionality is available, or no error is provided", () => {
+				it("should respond with default failure message", () => {
+					expect(uut.failureMessage()).toBe(failureResponse);
+				});
+			});
+
+			if (error !== undefined)
+				describe("when a custom error is provided", () => {
+					beforeEach(() => {
+						Object.assign(uut, { error });
+					});
+
+					it("should respond with provided error message", () => {
+						expect(uut.failureMessage()).toBe(error.message);
+					});
+				});
+		}
+	);
 });
