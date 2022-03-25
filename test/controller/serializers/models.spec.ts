@@ -91,7 +91,7 @@ describe.each(testedTypes)("$typeName: ", ({ typeName, definition, match, mismat
 
 	describe("class properties", () => {
 		describe("definition", () => {
-			it("should have the correct description", () => {
+			it("should have the correct definition", () => {
 				expect(uut.definition).toBe(definition);
 			});
 		});
@@ -103,6 +103,57 @@ describe.each(testedTypes)("$typeName: ", ({ typeName, definition, match, mismat
 
 			it(`should return false when provided with '${mismatch}'`, () => {
 				expect(uut.hasSameTypeAs(mismatch)).toBe(false);
+			});
+		});
+	});
+});
+
+describe("Enum Factory: ", () => {
+	const uut = Models.Enum;
+	const args = ["arg1", "arg2"];
+
+	it("should create an 'Enum' class that extends 'IntellionType' and has the same properties", () => {
+		const EnumClass = uut(...args);
+		const enumInstance = new EnumClass();
+		expect(enumInstance).toBeInstanceOf(Models.IntellionType);
+	});
+
+	const testedEnums = [
+		{
+			typeName: "String Enum",
+			args: ["some-string-1", "some-string-2"],
+			matches: ["some-string-1", "some-string-2"],
+			mismatches: ["some-unallowed-string", 123]
+		},
+		{
+			typeName: "Number Enum",
+			args: [123, 456],
+			matches: [123, 456],
+			mismatches: [789, "some-string"]
+		}
+	];
+
+	describe.each(testedEnums)("$typeName: ", ({ args, matches, mismatches }) => {
+		const definition = `a ${typeof args[0]} from the following options: ${args.join(
+			", "
+		)}`;
+
+		it("should have the correct definition", () => {
+			const EnumClass = uut(...args);
+			expect(EnumClass.definition).toBe(definition);
+		});
+
+		describe("hasSameTypeAs", () => {
+			it(`should return true when provided with '${args.join(" or ")}'`, () => {
+				const EnumClass = uut(...args);
+				expect(EnumClass.hasSameTypeAs(matches[0])).toBe(true);
+				expect(EnumClass.hasSameTypeAs(matches[1])).toBe(true);
+			});
+
+			it(`should return false when provided with '${mismatches.join(" or ")}'`, () => {
+				const EnumClass = uut(...args);
+				expect(EnumClass.hasSameTypeAs(mismatches[0])).toBe(false);
+				expect(EnumClass.hasSameTypeAs(mismatches[1])).toBe(false);
 			});
 		});
 	});

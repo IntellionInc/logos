@@ -33,3 +33,11 @@ export class Array extends IntellionType {
 	static hasSameTypeAs = (test: any) => global.Array.isArray(test);
 	static definition = "an array";
 }
+
+export const Enum = <T>(...args: T[]) =>
+	class Enum extends IntellionType {
+		static hasSameTypeAs = (test: any) => args.includes(test);
+		static definition = `a ${typeof args[0]} from the following options: ${args.join(
+			", "
+		)}`;
+	};
