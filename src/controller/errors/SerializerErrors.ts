@@ -2,7 +2,7 @@ export class TypeMismatchError extends Error {
 	name = "TypeMismatchError";
 	constructor(key: string, expected: any, received: any) {
 		super(
-			`Expected ${key} to confirm to definition(s): "${expected}", but received "${received}"`
+			`Expected ${key} to conform to definition(s): "${expected}", but received "${received}"`
 		);
 	}
 }

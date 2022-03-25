@@ -17,7 +17,7 @@ describe("TypeMismatchError: ", () => {
 	it("should have the correct error message", () => {
 		const message =
 			// eslint-disable-next-line quotes
-			'Expected some-key to confirm to definition(s): "some-definition", but received "[object Object]"';
+			'Expected some-key to conform to definition(s): "some-definition", but received "[object Object]"';
 		expect(uut.message).toBe(message);
 	});
 });
