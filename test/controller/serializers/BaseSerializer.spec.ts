@@ -29,6 +29,7 @@ describe("BaseSerializer: ", () => {
 						return mockGetter();
 					}
 				}
+
 				MockSerializerInstance = MockSerializer;
 			});
 
@@ -47,8 +48,11 @@ describe("BaseSerializer: ", () => {
 				describe("when all properties belong to correct types", () => {
 					describe("when there are getters", () => {
 						let mockGetter: jest.Mock;
+						let mockAsyncGetter: jest.Mock;
 
 						const mockFetchedResult = { some: "getter-result" };
+						const mockAsyncResult = { something: "else" };
+
 						const input = {
 							key1: "value1",
 							key2: "value2",
@@ -57,11 +61,15 @@ describe("BaseSerializer: ", () => {
 						const output = {
 							key1: "value1",
 							key2: "value2",
-							someProperty: mockFetchedResult
+							someProperty: mockFetchedResult,
+							asyncProperty: mockAsyncResult,
+							combinedProperty: "value1value2"
 						};
 
 						beforeEach(() => {
 							mockGetter = jest.fn().mockReturnValueOnce(mockFetchedResult);
+							mockAsyncGetter = jest.fn().mockResolvedValueOnce(mockAsyncResult);
+
 							class MockSerializer extends BaseSerializer {
 								key1 = String;
 								key2 = String;
@@ -69,7 +77,14 @@ describe("BaseSerializer: ", () => {
 								public get someProperty() {
 									return mockGetter();
 								}
+								public get asyncProperty() {
+									return mockAsyncGetter();
+								}
+								public get combinedProperty() {
+									return this._object.key1 + this._object.key2;
+								}
 							}
+
 							MockSerializerInstance = MockSerializer;
 						});
 
@@ -78,6 +93,7 @@ describe("BaseSerializer: ", () => {
 								MockSerializerInstance,
 								input
 							);
+
 							expect(result).toEqual(output);
 						});
 					});
@@ -91,6 +107,7 @@ describe("BaseSerializer: ", () => {
 								key1 = String;
 								key2 = String;
 							}
+
 							MockSerializerInstance = MockSerializer;
 						});
 
@@ -112,6 +129,7 @@ describe("BaseSerializer: ", () => {
 							key1 = String;
 							key2 = String;
 						}
+
 						MockSerializerInstance = MockSerializer;
 					});
 
@@ -142,6 +160,7 @@ describe("BaseSerializer: ", () => {
 							key1 = String;
 							key2 = String;
 						}
+
 						MockSerializerInstance = MockSerializer;
 					});
 
@@ -170,6 +189,7 @@ describe("BaseSerializer: ", () => {
 								key1 = String;
 								key2 = [String, Number];
 							}
+
 							MockSerializerInstance = MockSerializer;
 						});
 
@@ -204,6 +224,7 @@ describe("BaseSerializer: ", () => {
 								key1 = String;
 								key2 = [String, Number, undefined];
 							}
+
 							MockSerializerInstance = MockSerializer;
 						});
 
@@ -234,6 +255,7 @@ describe("BaseSerializer: ", () => {
 								return mockGetter();
 							}
 						}
+
 						MockSerializerInstance = MockSerializer;
 					});
 
@@ -252,6 +274,7 @@ describe("BaseSerializer: ", () => {
 							key1 = String;
 							key2 = [String, Email];
 						}
+
 						MockSerializerInstance = MockSerializer;
 					});
 
@@ -283,6 +306,7 @@ describe("BaseSerializer: ", () => {
 							key1 = String;
 							key2 = [String, undefined];
 						}
+
 						MockSerializerInstance = MockSerializer;
 					});
 
@@ -329,6 +353,7 @@ describe("BaseSerializer: ", () => {
 							return mockGetter();
 						}
 					}
+
 					MockSerializerInstance = MockSerializer;
 				});
 				it("should return the serialized results in an array", async () => {

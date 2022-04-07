@@ -3,6 +3,8 @@ import { ISerializerInput, ISerializerOutput, SerializerFieldStatus } from "../.
 import { TypeMismatchError, SerializationError } from "../errors";
 
 export class BaseSerializer {
+	_object?: ISerializerInput;
+
 	static findGetters = (Schema: typeof BaseSerializer) =>
 		Object.getOwnPropertyNames(Schema.prototype)
 			.map(key => [key, Object.getOwnPropertyDescriptor(Schema.prototype, key)])
@@ -22,6 +24,12 @@ export class BaseSerializer {
 		const getters: string[] = BaseSerializer.findGetters(Schema);
 
 		const serializer = new Schema();
+		Object.defineProperty(serializer, "_object", {
+			value: inputField,
+			enumerable: false,
+			writable: false
+		});
+
 		return await new Result(getters, serializer, inputField).calculate();
 	};
 
