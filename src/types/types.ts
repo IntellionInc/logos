@@ -41,11 +41,7 @@ export interface IRoutes {
 
 export interface IPostgresConnection {
 	type: "postgres";
-	host: string;
-	port: number;
-	username: string;
-	password: string;
-	database: string;
+	url: string;
 	entities: EntityType[];
 }
 
