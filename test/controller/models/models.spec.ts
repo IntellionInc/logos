@@ -78,6 +78,12 @@ const testedTypes = [
 		definition: "an array",
 		match: ["element1", "element2"],
 		mismatch: 424242
+	},
+	{
+		typeName: "Buffer",
+		definition: "a buffer",
+		match: Buffer.from("a buffer"),
+		mismatch: 42244224
 	}
 ];
 
