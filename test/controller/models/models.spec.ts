@@ -1,6 +1,14 @@
 import * as Models from "src/controller/models";
 
-type TypeName = "String" | "Email" | "Number" | "Boolean" | "Date" | "Array";
+type TypeName =
+	| "String"
+	| "Email"
+	| "Number"
+	| "Boolean"
+	| "Date"
+	| "Array"
+	| "Buffer"
+	| "File";
 
 describe("IntellionType: ", () => {
 	beforeAll(() => {
@@ -83,6 +91,12 @@ const testedTypes = [
 		typeName: "Buffer",
 		definition: "a buffer",
 		match: Buffer.from("a buffer"),
+		mismatch: 42244224
+	},
+	{
+		typeName: "File",
+		definition: "a file",
+		match: new File(["foo"], "a file"),
 		mismatch: 42244224
 	}
 ];

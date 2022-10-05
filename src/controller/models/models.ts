@@ -39,6 +39,11 @@ export class Buffer extends IntellionType {
 	static definition = "a buffer";
 }
 
+export class File extends IntellionType {
+	static hasSameTypeAs = (test: any) => test instanceof global.File;
+	static definition = "a file";
+}
+
 export const Enum = <T>(...args: T[]) =>
 	class Enum extends IntellionType {
 		static hasSameTypeAs = (test: any) => args.includes(test);
