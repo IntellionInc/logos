@@ -28,9 +28,13 @@ export class Router {
 			if (typeof layer[key] === "string") {
 				router.route("/");
 				const matcher = (<string>layer[key]).split(" => ");
+				const middlewares = this.controllers[matcher[0]].MIDDLEWARES;
 				router
 					.route("/")
-					[<CrudMethodName>key](this.runControllerMethod.bind(this, matcher));
+					[<CrudMethodName>key](
+						...middlewares,
+						this.runControllerMethod.bind(this, matcher)
+					);
 			}
 		});
 		return router;

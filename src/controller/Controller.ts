@@ -11,6 +11,8 @@ export class BaseController extends Chain {
 	meta: Record<any, any> = {};
 	_interception: any = null;
 
+	static MIDDLEWARES: any[] = [];
+
 	public user: any;
 	public interceptors: BaseInterceptor[] = [];
 

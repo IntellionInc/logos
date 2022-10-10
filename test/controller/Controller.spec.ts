@@ -64,6 +64,17 @@ describe("Controller: ", () => {
 			expect(instance.finally).toHaveBeenNthCalledWith(2, _setResponseData);
 			expect(instance.finally).toHaveBeenNthCalledWith(3, _respond);
 		});
+
+		it("should have the correct static properties", () => {
+			const properties: Record<string, any> = {
+				MIDDLEWARES: []
+			};
+
+			Object.keys(properties).forEach(key => {
+				expect(BaseController).toHaveProperty(key);
+				expect(BaseController[key as keyof MockController]).toEqual(properties[key]);
+			});
+		});
 	});
 
 	beforeEach(() => {
