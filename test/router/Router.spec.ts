@@ -103,6 +103,7 @@ describe("Router", () => {
 				someLayerKey: "controller => method",
 				some: { inner: "layer" }
 			};
+			const middlewares = ["some-middleware"];
 			let mockSomeMethod: any, mockBind: any;
 
 			beforeEach(() => {
@@ -112,14 +113,17 @@ describe("Router", () => {
 				});
 				mockBind = jest.fn().mockReturnValue("some-bound-method");
 				uut.runControllerMethod.bind = mockBind;
+				Object.assign(uut, {
+					controllers: { controller: { MIDDLEWARES: middlewares } }
+				});
 			});
 
-			it("should connect endpoints to the correct controller methods", () => {
+			it("should connect endpoints to the correct controller methods and middlewares", () => {
 				const result = uut.route(mockRouter, mockLayer);
 				expect(result).toBe(mockRouter);
 				expect(mockRouter.route).toHaveBeenNthCalledWith(1, "/");
 				expect(mockRouter.route).toHaveBeenNthCalledWith(2, "/");
-				expect(mockSomeMethod).toHaveBeenCalledWith("some-bound-method");
+				expect(mockSomeMethod).toHaveBeenCalledWith(...middlewares, "some-bound-method");
 				expect(mockBind).toHaveBeenCalled();
 			});
 		});
