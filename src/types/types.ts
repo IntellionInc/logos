@@ -45,6 +45,12 @@ export interface IPostgresConnection {
 	entities: EntityType[];
 }
 
+export interface IMySqlConnection {
+	type: "mysql";
+	url: string;
+	entities: EntityType[];
+}
+
 export type CrudMethodName = "get" | "post" | "patch" | "put" | "delete";
 
 export interface CommunicatorMethod {

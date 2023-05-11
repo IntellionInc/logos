@@ -4,7 +4,13 @@ import express from "express";
 import { BaseEntity, Connection, ConnectionManager, ConnectionOptions } from "typeorm";
 import { Chain } from "@intellion/arche";
 import { Router } from "../router";
-import { ControllerList, IRoutes, IPostgresConnection, DtoList } from "../types";
+import {
+	ControllerList,
+	IRoutes,
+	IPostgresConnection,
+	DtoList,
+	IMySqlConnection
+} from "../types";
 import { ConnectionManagerController } from "./ConnectionManagerController";
 
 config();
@@ -77,6 +83,11 @@ export class Server extends Chain {
 	};
 
 	usePostgres = (connectionName: string, dbConfig: IPostgresConnection) => {
+		this.before(this._createConnection.bind(this, connectionName, dbConfig));
+		return this;
+	};
+
+	useMySql = (connectionName: string, dbConfig: IMySqlConnection) => {
 		this.before(this._createConnection.bind(this, connectionName, dbConfig));
 		return this;
 	};
