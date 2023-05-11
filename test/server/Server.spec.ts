@@ -5,7 +5,12 @@ import { BaseEntity, ConnectionManager } from "typeorm";
 
 import { Router } from "src/router";
 import { Server, ConnectionManagerController } from "src/server";
-import { ControllerList, IPostgresConnection, IRoutes } from "src/types";
+import {
+	ControllerList,
+	IMySqlConnection,
+	IPostgresConnection,
+	IRoutes
+} from "src/types";
 
 jest.mock("express");
 jest.mock("typeorm");
@@ -298,6 +303,28 @@ describe("Server: ", () => {
 
 			it("should set a before hook with '_createConnection'", () => {
 				const result = uut.usePostgres(connectionName, dbConfig);
+				expect(uut._createConnection.bind).toHaveBeenCalledWith(
+					uut,
+					connectionName,
+					dbConfig
+				);
+				expect(uut.before).toHaveBeenCalledWith(boundCreateConnection);
+				expect(result).toBe(uut);
+			});
+		});
+
+		describe("useMySql", () => {
+			const connectionName = "some-connection-name";
+			const dbConfig = { some: "config" } as unknown as IMySqlConnection;
+			let boundCreateConnection: jest.Mock;
+
+			beforeEach(() => {
+				boundCreateConnection = jest.fn();
+				uut._createConnection.bind = jest.fn().mockReturnValue(boundCreateConnection);
+			});
+
+			it("should set a before hook with '_createConnection'", () => {
+				const result = uut.useMySql(connectionName, dbConfig);
 				expect(uut._createConnection.bind).toHaveBeenCalledWith(
 					uut,
 					connectionName,
