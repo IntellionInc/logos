@@ -1,6 +1,6 @@
 {
 	"name": "@intellion/logos",
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"description": "",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
@@ -37,7 +37,7 @@
 		"test": "test"
 	},
 	"dependencies": {
-		"@intellion/arche": "^1.0.5",
+		"@intellion/arche": "^1.1.0",
 		"@types/express": "^4.17.13",
 		"axios": "^0.24.0",
 		"dotenv": "^10.0.0",

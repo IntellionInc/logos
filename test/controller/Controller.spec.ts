@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Chain } from "@intellion/arche";
+import { Chain, Hook } from "@intellion/arche";
 import {
 	BaseController,
 	BaseInterceptor,
@@ -13,8 +13,12 @@ class MockController extends BaseController {}
 
 jest.mock("../../src/controller/interceptors/DerivedInterceptors");
 
+let mockChainErrorHandler: jest.Mock;
 jest.mock("@intellion/arche", () => ({
 	Chain: class MockChain {
+		async errorHandler(hook: Hook) {
+			await mockChainErrorHandler(hook);
+		}
 		initially = jest.fn().mockReturnThis();
 		main = jest.fn().mockReturnThis();
 		finally = jest.fn().mockReturnThis();
@@ -153,7 +157,8 @@ describe("Controller: ", () => {
 			});
 
 			it("should call the controller function, set '_controlledResult' and return the class instance iteslf", async () => {
-				await uut._control();
+				const result = await uut._control();
+				expect(result).toBe(mockControlledResult);
 				expect(mockControlledFunction).toHaveBeenCalledWith(request);
 				expect(uut._controlledResult).toBe(mockControlledResult);
 			});
@@ -331,7 +336,7 @@ describe("Controller: ", () => {
 
 				describe("when the response status is success", () => {
 					const status = 242;
-					const successResponse = { status, meta, data: responseData };
+					const successResponse = { status, meta, data: responseData, error: null };
 
 					beforeEach(() => {
 						Object.assign(uut, { status });
@@ -348,7 +353,7 @@ describe("Controller: ", () => {
 					let actualConsoleTrace: any;
 
 					const status = 542;
-					const failureResponse = { status, meta, error: responseData };
+					const failureResponse = { status, meta, error: responseData, data: null };
 
 					beforeEach(() => {
 						mockConsoleTrace = jest.fn();
@@ -596,6 +601,7 @@ describe("Controller: ", () => {
 				let mockHandle: jest.Mock;
 
 				const hookError = { handle: null };
+				const hook = { error: hookError } as Hook;
 
 				const errorMessage = "some-error-message";
 				const errorStack = "some-error-stack-trace";
@@ -606,7 +612,13 @@ describe("Controller: ", () => {
 				};
 
 				beforeEach(() => {
+					mockChainErrorHandler = jest.fn().mockResolvedValue("some-response");
+
 					mockHandle = jest.fn();
+				});
+
+				afterEach(() => {
+					expect(mockChainErrorHandler).toHaveBeenCalledWith(hook);
 				});
 
 				describe("when the error is defined in errors dictionary", () => {
@@ -648,6 +660,7 @@ describe("Controller: ", () => {
 							mockHandle.mockRejectedValueOnce(error);
 
 							Object.assign(hookError, { handle: mockHandle });
+							Object.assign(hook, { error: hookError });
 
 							Object.assign(uut, {
 								_errorsDictionary: {
@@ -658,7 +671,7 @@ describe("Controller: ", () => {
 						});
 
 						it("should perform error handling recursively", async () => {
-							await uut.errorHandler(hookError);
+							await uut.errorHandler(hook);
 							expect(uut.status).toBe(knownErrorStatus);
 							expect(uut._controlledResult).toEqual(defaultControlledResult);
 						});
@@ -682,6 +695,7 @@ describe("Controller: ", () => {
 						beforeEach(() => {
 							mockHandle.mockRejectedValueOnce(error);
 							Object.assign(hookError, { handle: mockHandle });
+							Object.assign(hook, { error: hookError });
 							Object.assign(uut, {
 								_errorsDictionary: {
 									[error.name]: mockKnownError
@@ -690,7 +704,7 @@ describe("Controller: ", () => {
 						});
 
 						it("should set response with correct message, status and stack", async () => {
-							await uut.errorHandler(hookError);
+							await uut.errorHandler(hook);
 							expect(uut.status).toEqual(knownErrorStatus);
 							expect(uut._controlledResult).toEqual(mockControlledResult);
 						});
@@ -712,6 +726,7 @@ describe("Controller: ", () => {
 					beforeEach(() => {
 						mockHandle.mockRejectedValueOnce(error);
 						Object.assign(hookError, { handle: mockHandle });
+						Object.assign(hook, { error: hookError });
 
 						Object.assign(uut, {
 							_errorsDictionary: {}
@@ -719,9 +734,32 @@ describe("Controller: ", () => {
 					});
 
 					it("should set response with default failure status, error message and stack", async () => {
-						await uut.errorHandler(hookError);
+						await uut.errorHandler(hook);
 						expect(uut.status).toBe(defaultFailureStatus);
 						expect(uut._controlledResult).toEqual(defaultControlledResult);
+					});
+				});
+
+				describe("when the error is not defined at all", () => {
+					const error = new Error();
+
+					const defaultFailureStatus = STATUS.INTERNAL_SERVER_ERROR;
+
+					beforeEach(() => {
+						mockHandle.mockRejectedValueOnce(undefined);
+						Object.assign(hookError, { handle: mockHandle });
+						Object.assign(hook, { error: hookError });
+
+						Object.assign(uut, {
+							_errorsDictionary: {}
+						});
+					});
+
+					it("should set response with default failure status and an unknown error", async () => {
+						await uut.errorHandler(hook);
+						expect(uut.status).toBe(defaultFailureStatus);
+						expect(uut._controlledResult.error).toEqual(error);
+						expect(uut._controlledResult.stack).toBe(uut._controlledResult.error.stack);
 					});
 				});
 			});
