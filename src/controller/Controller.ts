@@ -89,6 +89,7 @@ export class BaseController extends Chain {
 
 	async errorHandler(hook: Hook) {
 		await super.errorHandler(hook);
+
 		try {
 			await hook.error.handle();
 		} catch (error) {
