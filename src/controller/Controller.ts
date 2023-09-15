@@ -1,10 +1,10 @@
-import { Chain } from "@intellion/arche";
+import { Chain, Hook } from "@intellion/arche";
 import { Request, Response } from "express";
 
 import { STATUS } from "./StatusCodes";
 import { BaseInterceptor, AuthInterceptor, ValidationInterceptor } from "./interceptors";
 import { BaseSerializer } from "./serializers";
-import { IControllerDtos } from "../types";
+import { ControllerResponse, IControllerDtos } from "../types";
 
 export class BaseController extends Chain {
 	status = STATUS.SUCCESS;
@@ -58,7 +58,7 @@ export class BaseController extends Chain {
 		return this;
 	};
 
-	async responseProtocol(): Promise<any> {
+	async responseProtocol() {
 		return (await this.#isSuccessfulResponseStatus())
 			? this.#sendSuccessResponse()
 			: this.#sendFailureResponse();
@@ -87,21 +87,25 @@ export class BaseController extends Chain {
 		Object.assign(this._errorsDictionary, newErrorAssignments);
 	};
 
-	errorHandler = async hookError => {
+	async errorHandler(hook: Hook) {
+		await super.errorHandler(hook);
 		try {
-			await hookError.handle();
+			await hook.error.handle();
 		} catch (error) {
+			if (!error) error = new Error();
 			const KnownError = this._errorsDictionary[error.name];
 			if (!KnownError) this.#setInternalError(error);
 			if (KnownError) {
 				const knownError = new KnownError(error.message);
-				if (knownError.hasOwnProperty("handle"))
-					return await this.errorHandler(knownError);
+				if (knownError.hasOwnProperty("handle")) {
+					hook.error = knownError;
+					return await this.errorHandler(hook);
+				}
 				this.status = knownError.status;
 				this._controlledResult = { error: knownError, stack: error.stack };
 			}
 		}
-	};
+	}
 
 	_setInterceptors = () => {
 		if (this.interceptors.length === 0) return;
@@ -110,7 +114,7 @@ export class BaseController extends Chain {
 
 	_control = async () => {
 		const result = await this._controlledFunction(this.request);
-		this._controlledResult = result;
+		return (this._controlledResult = result);
 	};
 
 	_setStatus = async () => this.response.status(this.status);
@@ -155,17 +159,18 @@ export class BaseController extends Chain {
 		this._controlledResult = { error, stack: error.stack };
 	};
 
-	#sendSuccessResponse = () => ({
+	#sendSuccessResponse = (): ControllerResponse => ({
 		status: this.status,
 		meta: this.meta,
-		data: this.responseData
+		data: this.responseData,
+		error: null
 	});
 
-	#sendFailureResponse = () => ({
+	#sendFailureResponse = (): ControllerResponse => ({
 		status: this.status,
 		meta: this.meta,
 		error: this.responseData,
-		stack: console.trace()
+		data: null
 	});
 
 	#isSuccessfulResponseStatus = () => this.status >= 200 && this.status < 300;
