@@ -11,6 +11,8 @@ export class ValidationInterceptor extends BaseInterceptor {
 	protocol = this.controller.validationProtocol;
 	failureStatus = STATUS.BAD_REQUEST;
 	failureMessage = () => {
-		return this.error ? this.error.message : ERROR_MESSAGES.BAD_REQUEST;
+		return this.errors.length > 0
+			? this.errors.map(({ message }) => message).join(", ")
+			: ERROR_MESSAGES.BAD_REQUEST;
 	};
 }

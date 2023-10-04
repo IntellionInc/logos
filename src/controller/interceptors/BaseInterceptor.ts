@@ -2,11 +2,15 @@ import { Chain } from "@intellion/arche";
 import { BaseController } from "../Controller";
 
 export abstract class BaseInterceptor extends Chain {
-	protocol: (...args: any[]) => any;
+	protocol: (...args: any[]) => Promise<{
+		success: boolean;
+		data: string | null;
+		errors: Error[];
+	}>;
 	failureStatus: number;
 	failureMessage: () => string;
 	data: string;
-	error?: any;
+	errors: Error[] = [];
 	success = true;
 
 	constructor(public controller: BaseController) {
@@ -18,8 +22,10 @@ export abstract class BaseInterceptor extends Chain {
 	}
 
 	runProtocol = async () => {
-		const { success, data, error } = await this.protocol();
-		[this.success, this.data, this.error] = [success, data, error];
+		const result = await this.protocol();
+		const { success, data, errors } = result;
+		[this.success, this.data] = [success, data];
+		if (errors) this.errors.push(...errors);
 	};
 
 	setControllerStatus = () => {
@@ -31,6 +37,6 @@ export abstract class BaseInterceptor extends Chain {
 	};
 
 	setYield = () => {
-		this.yield = { success: this.success, data: this.data, error: this.error };
+		this.yield = { success: this.success, data: this.data, errors: this.errors };
 	};
 }

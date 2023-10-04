@@ -21,6 +21,9 @@ export class BaseSerializer {
 		Schema: typeof BaseSerializer,
 		inputField: ISerializerInput
 	) => {
+		if (!inputField)
+			throw new SerializationError([new Error("Cannot serialize undefined!")]);
+
 		const getters: string[] = BaseSerializer.findGetters(Schema);
 
 		const serializer = new Schema();
@@ -45,7 +48,7 @@ export class BaseSerializer {
 }
 
 class Result {
-	errors: any[] = [];
+	errors: Error[] = [];
 	schemaKeys: any[];
 	outputCandidate: ISerializerOutput = {};
 
