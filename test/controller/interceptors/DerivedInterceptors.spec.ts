@@ -25,7 +25,7 @@ describe("Derived Interceptors: ", () => {
 			Interceptor: AuthInterceptor,
 			controllerProtocol: "authProtocol",
 			failureStatus: STATUS.UNAUTHORIZED,
-			error: undefined,
+			errors: [],
 			failureResponse: ERROR_MESSAGES.UNAUTHORIZED
 		},
 		{
@@ -33,14 +33,17 @@ describe("Derived Interceptors: ", () => {
 			Interceptor: ValidationInterceptor,
 			controllerProtocol: "validationProtocol",
 			failureStatus: STATUS.BAD_REQUEST,
-			error: { message: "custom-bad-request-error-message" },
+			errors: [
+				{ message: "custom-error-message-1" },
+				{ message: "custom-error-message-2" }
+			],
 			failureResponse: ERROR_MESSAGES.BAD_REQUEST
 		}
 	];
 
 	describe.each(derivedInterceptorTestCases)(
 		"$definition: ",
-		({ Interceptor, controllerProtocol, error, failureStatus, failureResponse }) => {
+		({ Interceptor, controllerProtocol, errors, failureStatus, failureResponse }) => {
 			let uut: any;
 			const mockProtocol = jest.fn();
 			const MockController = {
@@ -71,14 +74,16 @@ describe("Derived Interceptors: ", () => {
 				});
 			});
 
-			if (error !== undefined)
-				describe("when a custom error is provided", () => {
+			if (errors.length > 0)
+				describe("when some errors are provided", () => {
 					beforeEach(() => {
-						Object.assign(uut, { error });
+						Object.assign(uut, { errors });
 					});
 
-					it("should respond with provided error message", () => {
-						expect(uut.failureMessage()).toBe(error.message);
+					it("should respond with provided error messages", () => {
+						expect(uut.failureMessage()).toBe(
+							errors.map(({ message }) => message).join(", ")
+						);
 					});
 				});
 		}

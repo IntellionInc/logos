@@ -71,6 +71,9 @@ export type SerializerFieldStatus = "getter" | "allowed" | "optional";
 export type ControllerResponse = {
 	status: number;
 	meta: Record<any, any>;
-	error: null | Error;
-	data: null | Record<any, any>;
+	error: string;
+	stack?: string;
+	data: Record<any, any>;
+	count?: number;
+	paginated?: boolean;
 };

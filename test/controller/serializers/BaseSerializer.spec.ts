@@ -3,11 +3,20 @@ import { Email, Number, String } from "src/controller/models";
 import { TypeMismatchError, SerializationError } from "src/controller";
 
 jest.mock("../../../src/controller/errors", () => ({
-	TypeMismatchError: jest.fn().mockReturnValue(Error("some-mismatch-error")),
-	SerializationError: jest.fn().mockReturnValue(Error("some-serialization-error"))
+	TypeMismatchError: jest.fn(),
+	SerializationError: jest.fn()
 }));
 
 describe("BaseSerializer: ", () => {
+	const notTheRealError = "should not throw this";
+	const mismatchError = { message: "some mismatch error" };
+	const serializationError = { message: "some serialization error" };
+
+	beforeEach(() => {
+		(TypeMismatchError as unknown as jest.Mock).mockReturnValue(mismatchError);
+		(SerializationError as unknown as jest.Mock).mockReturnValue(serializationError);
+	});
+
 	describe("serialization", () => {
 		let mockInput: Record<any, any>;
 		let MockSerializerInstance: typeof BaseSerializer;
@@ -20,7 +29,7 @@ describe("BaseSerializer: ", () => {
 			};
 
 			beforeEach(() => {
-				mockGetter = jest.fn().mockRejectedValueOnce({ some: "value" });
+				mockGetter = jest.fn().mockRejectedValue({ some: "value" });
 				class MockSerializer extends BaseSerializer {
 					key1 = String;
 					key2 = String;
@@ -33,12 +42,19 @@ describe("BaseSerializer: ", () => {
 				MockSerializerInstance = MockSerializer;
 			});
 
-			it("should throw a 'SerializationError", async () => {
-				expect.assertions(1);
+			it("should throw a type mismatch error", async () => {
 				try {
 					await BaseSerializer.serialize(MockSerializerInstance, mockInput);
+					throw new Error(notTheRealError);
 				} catch (err) {
-					expect(err).toEqual(Error("some-serialization-error"));
+					expect(err.message).not.toBe(notTheRealError);
+					expect(err).toBe(serializationError);
+					expect(TypeMismatchError).toHaveBeenCalledWith(
+						"someProperty",
+						"not defined",
+						undefined
+					);
+					expect(SerializationError).toHaveBeenCalledWith([mismatchError]);
 				}
 			});
 		});
@@ -133,21 +149,19 @@ describe("BaseSerializer: ", () => {
 						MockSerializerInstance = MockSerializer;
 					});
 
-					it("should throw a 'TypeMismatchError'", async () => {
-						expect.assertions(3);
-
+					it("should throw a type mismatch error", async () => {
 						try {
 							await BaseSerializer.serialize(MockSerializerInstance, input);
+							throw new Error(notTheRealError);
 						} catch (err) {
-							expect(err).toEqual(Error("some-serialization-error"));
+							expect(err).not.toBe(notTheRealError);
+							expect(err).toEqual(serializationError);
 							expect(TypeMismatchError).toHaveBeenCalledWith(
 								"key2",
 								String.definition,
 								42
 							);
-							expect(SerializationError).toHaveBeenCalledWith([
-								Error("some-mismatch-error")
-							]);
+							expect(SerializationError).toHaveBeenCalledWith([mismatchError]);
 						}
 					});
 				});
@@ -164,13 +178,14 @@ describe("BaseSerializer: ", () => {
 						MockSerializerInstance = MockSerializer;
 					});
 
-					it("should throw a 'TypeMismatchError'", async () => {
-						expect.assertions(2);
-
+					it("should throw a type mismatch error", async () => {
 						try {
 							await BaseSerializer.serialize(MockSerializerInstance, input);
+							throw new Error(notTheRealError);
 						} catch (err) {
-							expect(err).toEqual(Error("some-serialization-error"));
+							expect(err.message).not.toBe(notTheRealError);
+							expect(err).toEqual(serializationError);
+							expect(SerializationError).toHaveBeenCalledWith([mismatchError]);
 							expect(TypeMismatchError).toHaveBeenCalledWith(
 								"key2",
 								String.definition,
@@ -279,20 +294,18 @@ describe("BaseSerializer: ", () => {
 					});
 
 					it("should throw the appropriate error", async () => {
-						expect.assertions(3);
-
 						try {
 							await BaseSerializer.serialize(MockSerializerInstance, input);
+							throw new Error(notTheRealError);
 						} catch (err) {
-							expect(err).toEqual(Error("some-serialization-error"));
+							expect(err.message).not.toBe(notTheRealError);
+							expect(err).toBe(serializationError);
 							expect(TypeMismatchError).toHaveBeenCalledWith(
 								"key2",
 								errorMessageDefinition,
 								42
 							);
-							expect(SerializationError).toHaveBeenCalledWith([
-								Error("some-mismatch-error")
-							]);
+							expect(SerializationError).toHaveBeenCalledWith([mismatchError]);
 						}
 					});
 				});
@@ -311,20 +324,18 @@ describe("BaseSerializer: ", () => {
 					});
 
 					it("should throw the appropriate error", async () => {
-						expect.assertions(3);
-
 						try {
 							await BaseSerializer.serialize(MockSerializerInstance, input);
+							throw new Error(notTheRealError);
 						} catch (err) {
-							expect(err).toEqual(Error("some-serialization-error"));
+							expect(err.message).not.toBe(notTheRealError);
+							expect(err).toBe(serializationError);
 							expect(TypeMismatchError).toHaveBeenCalledWith(
 								"key2",
 								errorMessageDefinition,
 								42
 							);
-							expect(SerializationError).toHaveBeenCalledWith([
-								Error("some-mismatch-error")
-							]);
+							expect(SerializationError).toHaveBeenCalledWith([mismatchError]);
 						}
 					});
 				});
@@ -359,6 +370,21 @@ describe("BaseSerializer: ", () => {
 				it("should return the serialized results in an array", async () => {
 					const result = await BaseSerializer.serialize(MockSerializerInstance, input);
 					expect(result).toEqual(output);
+				});
+			});
+
+			describe("when no input is provided", () => {
+				const errorMessage = "Cannot serialize undefined!";
+
+				it("should throw the correct error", async () => {
+					try {
+						await BaseSerializer.serialize(MockSerializerInstance, undefined);
+						throw new Error(notTheRealError);
+					} catch (err) {
+						expect(err.message).not.toBe(notTheRealError);
+						expect(err).toBe(serializationError);
+						expect(SerializationError).toHaveBeenCalledWith([Error(errorMessage)]);
+					}
 				});
 			});
 		});

@@ -9,7 +9,7 @@ export class TypeMismatchError extends Error {
 
 export class SerializationError extends Error {
 	name = "SerializationError";
-	constructor(errors: any[]) {
+	constructor(errors: Error[]) {
 		super(errors.map(({ message, name }) => `${name}: ${message}`).join(", "));
 	}
 }

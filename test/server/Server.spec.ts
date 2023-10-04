@@ -159,7 +159,7 @@ describe("Server: ", () => {
 			const mockControllerYield = {
 				success: true,
 				data: mockConnectionManager,
-				error: null
+				errors: []
 			};
 
 			let actual: Record<string, string>;
