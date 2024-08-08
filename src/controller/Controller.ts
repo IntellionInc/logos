@@ -43,6 +43,8 @@ export class BaseController extends Chain {
 
 	public _serializedResult: IControllerResult;
 
+	public downloadData: [string, string] | null = null;
+
 	public responseData: {
 		data: Record<string, any>;
 		count?: number;
@@ -178,7 +180,9 @@ export class BaseController extends Chain {
 	};
 
 	_respond = async () => {
-		this.response.send(await this.responseProtocol());
+		this.downloadData
+			? this.response.download(...this.downloadData)
+			: this.response.send(await this.responseProtocol());
 	};
 
 	_setAuthentication = () => {
