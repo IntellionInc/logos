@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '14.x'
           registry-url: 'https://registry.npmjs.org/'
-      - run: npm ci --ignore-scripts
+      - run: echo ${{secrets.npm_token}} && npm ci --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
       - run: npm test --ignore-scripts
