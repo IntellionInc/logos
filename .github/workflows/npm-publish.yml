@@ -16,6 +16,7 @@ jobs:
         with:
           node-version: '16.x'
           registry-url: 'https://registry.npmjs.org/'
+      - run: echo "//registry.npmjs.org/:_authToken=${{secrets.npm_token}}" > ~/.npmrc
       - run: npm ci --ignore-scripts
       - run: npm test --ignore-scripts
       - run: npm rebuild && npm run prepare --if-present
