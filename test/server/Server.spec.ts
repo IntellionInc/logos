@@ -1,10 +1,12 @@
 import http from "http";
 import express, { IRouter } from "express";
 import * as typeorm from "typeorm";
-import { BaseEntity, ConnectionManager } from "typeorm";
+import { BaseEntity } from "typeorm";
 
 import { Router } from "src/router";
-import { Server, ConnectionManagerController } from "src/server";
+import { Server } from "src/server/Server";
+import { ConnectionManagerController } from "src/server/ConnectionManagerController";
+import { ConnectionManager } from "src/server/ConnectionManager";
 import {
 	ControllerList,
 	IMySqlConnection,
@@ -17,6 +19,7 @@ jest.mock("typeorm");
 
 jest.mock("../../src/router/Router.ts");
 jest.mock("../../src/server/ConnectionManagerController.ts");
+jest.mock("../../src/server/ConnectionManager.ts");
 
 jest.mock("@intellion/arche", () => ({
 	Chain: class MockChain {
@@ -211,21 +214,13 @@ describe("Server: ", () => {
 		});
 
 		describe("_createConnectionManager", () => {
-			let connectionManagerSpy: jest.SpyInstance;
-
-			const mockConnectionManager = {} as ConnectionManager;
-
-			beforeEach(() => {
-				connectionManagerSpy = jest
-					.spyOn(typeorm, "ConnectionManager")
-					.mockReturnValue(mockConnectionManager);
-			});
-
 			it("should create a Connection Manager and set 'ConnectionManagerController' instance accordingly", () => {
 				uut._createConnectionManager();
-				expect(connectionManagerSpy).toHaveBeenCalled();
-				expect(uut.connectionManager).toBe(mockConnectionManager);
-				expect(ConnectionManagerController.connectionManager).toBe(mockConnectionManager);
+				expect(ConnectionManager).toHaveBeenCalled();
+				expect(uut.connectionManager).toBeInstanceOf(ConnectionManager);
+				expect(ConnectionManagerController.connectionManager).toBeInstanceOf(
+					ConnectionManager
+				);
 			});
 		});
 
@@ -240,26 +235,25 @@ describe("Server: ", () => {
 				entities: [mockEntity1, mockEntity2]
 			} as unknown as IPostgresConnection;
 
-			const options = { name: connectionName, ...dbConfig };
 			const mockReturnedConnection = {};
 
 			let mockCreate: jest.Mock;
 			let mockEstablishConnection: jest.Mock;
-			let mockUseConnection: jest.Mock;
+			let mockUseDataSource: jest.Mock;
 
 			beforeEach(() => {
 				mockCreate = jest.fn().mockReturnValueOnce(mockReturnedConnection);
 				mockEstablishConnection = jest.fn();
 				uut._establishConnection = mockEstablishConnection;
-				mockUseConnection = jest.fn();
+				mockUseDataSource = jest.fn();
 
-				Object.assign(mockEntity1, { useConnection: mockUseConnection });
-				Object.assign(mockEntity2, { useConnection: mockUseConnection });
-				Object.assign(uut, {
-					connectionManager: {
-						create: mockCreate
-					}
+				Object.assign(mockEntity1, { useDataSource: mockUseDataSource });
+				Object.assign(mockEntity2, { useDataSource: mockUseDataSource });
+				Object.assign(ConnectionManager.prototype, {
+					create: mockCreate
 				});
+
+				uut._createConnectionManager();
 			});
 
 			afterEach(() => {
@@ -268,26 +262,26 @@ describe("Server: ", () => {
 
 			it("should create a new connection instance", async () => {
 				await uut._createConnection(connectionName, dbConfig);
-				expect(mockCreate).toHaveBeenCalledWith(options);
-				expect(mockUseConnection).toHaveBeenNthCalledWith(1, mockReturnedConnection);
-				expect(mockUseConnection).toHaveBeenNthCalledWith(2, mockReturnedConnection);
+				expect(mockCreate).toHaveBeenCalledWith(connectionName, dbConfig);
+				expect(mockUseDataSource).toHaveBeenNthCalledWith(1, mockReturnedConnection);
+				expect(mockUseDataSource).toHaveBeenNthCalledWith(2, mockReturnedConnection);
 				expect(mockEstablishConnection).toHaveBeenCalledWith(mockReturnedConnection);
 			});
 		});
 
 		describe("_establishConnection", () => {
-			const mockConnection = { connect: null } as typeorm.Connection;
-			let mockConnect: jest.Mock;
+			const mockConnection = { initialize: null } as typeorm.DataSource;
+			let mockInitialize: jest.Mock;
 			const mockResolvedConnection = {};
 
 			beforeEach(() => {
-				mockConnect = jest.fn().mockResolvedValueOnce(mockResolvedConnection);
-				mockConnection.connect = mockConnect;
+				mockInitialize = jest.fn().mockResolvedValueOnce(mockResolvedConnection);
+				mockConnection.initialize = mockInitialize;
 			});
 
-			it("should call 'connect' method of the Entity", async () => {
+			it("should call 'initialize' method of the connection", async () => {
 				await uut._establishConnection(mockConnection);
-				expect(mockConnect).toHaveBeenCalled();
+				expect(mockInitialize).toHaveBeenCalled();
 			});
 		});
 
