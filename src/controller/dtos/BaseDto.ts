@@ -11,7 +11,7 @@ export class BaseDto {
 
 export class TypeMatcher {
 	schemaKeys: string[];
-	expected: typeof IntellionType | typeof IntellionType[];
+	expected: typeof IntellionType | (typeof IntellionType)[];
 	received: any;
 	constructor(public input: IDtoInput | IDtoInput[], public dto: BaseDto) {
 		this.schemaKeys = [...Object.keys(dto)];
@@ -20,13 +20,14 @@ export class TypeMatcher {
 	isAllowed = () => (<typeof IntellionType>this.expected).hasSameTypeAs(this.received);
 
 	isAllowedFlex = () =>
-		(<typeof IntellionType[]>this.expected).some(
+		(<(typeof IntellionType)[]>this.expected).some(
 			i => i && i.hasSameTypeAs(this.received)
 		);
 
 	isNullable = () => {
 		return (
-			!this.received && (<typeof IntellionType[]>this.expected).some(i => i == undefined)
+			!this.received &&
+			(<(typeof IntellionType)[]>this.expected).some(i => i == undefined)
 		);
 	};
 
