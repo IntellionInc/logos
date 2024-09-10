@@ -163,7 +163,7 @@ class TypeMatcher {
 	match = () => (this.isFlexible() ? this.getMatchFlex() : this.getMatch());
 
 	#formulateErrorMessageDefinition = (
-		schemaValue: typeof IntellionType | typeof IntellionType[]
+		schemaValue: typeof IntellionType | (typeof IntellionType)[]
 	): string => {
 		const getDefinitionOrUndefinedMessage = (
 			item: { definition: string } | undefined

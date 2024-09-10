@@ -1,7 +1,7 @@
 import http from "http";
 import { config } from "dotenv";
 import express from "express";
-import { BaseEntity, Connection, ConnectionManager, ConnectionOptions } from "typeorm";
+import { BaseEntity, DataSource } from "typeorm";
 import { Chain } from "@intellion/arche";
 import { Router } from "../router";
 import {
@@ -9,14 +9,16 @@ import {
 	IRoutes,
 	IPostgresConnection,
 	DtoList,
-	IMySqlConnection
+	IMySqlConnection,
+	IConnection
 } from "../types";
 import { ConnectionManagerController } from "./ConnectionManagerController";
+import { ConnectionManager } from "./ConnectionManager";
 
 config();
 
 export class Server extends Chain {
-	connectionInfo: { name: string; connectionOptions: ConnectionOptions };
+	connectionInfo: { name: string; connectionOptions: IConnection };
 
 	app = express();
 	server: http.Server;
@@ -66,23 +68,20 @@ export class Server extends Chain {
 		ConnectionManagerController.connectionManager = this.connectionManager;
 	};
 
-	_createConnection = async (connectionName: string, dbConfig: ConnectionOptions) => {
-		const connection = this.connectionManager.create({
-			name: connectionName,
-			...dbConfig
-		});
+	_createConnection = async (connectionName: string, dbConfig: IConnection) => {
+		const connection = this.connectionManager.create(connectionName, dbConfig);
 
 		dbConfig.entities.forEach((Entity: typeof BaseEntity) => {
-			Entity.useConnection(connection);
+			Entity.useDataSource(connection);
 		});
 		await this._establishConnection(connection);
 	};
 
-	_establishConnection = async (connection: Connection) => {
-		await connection.connect();
+	_establishConnection = async (connection: DataSource) => {
+		await connection.initialize();
 	};
 
-	_addConnectionHook = (connectionName: string, dbConfig: ConnectionOptions) => {
+	_addConnectionHook = (connectionName: string, dbConfig: IConnection) => {
 		this.before(this._createConnection.bind(this, connectionName, dbConfig));
 		return this;
 	};

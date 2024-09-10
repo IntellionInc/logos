@@ -1,12 +1,14 @@
 import { ConnectionManagerController } from "../server";
-import { BaseEntity, Connection } from "typeorm";
+import { BaseEntity, DataSource } from "typeorm";
 
 export class BaseIntellionEntity extends BaseEntity {
 	connectionName = "default";
-	connection: Connection;
+	connection: DataSource;
 	constructor() {
 		super();
-		this.connection = ConnectionManagerController.connectionManager[this.connectionName];
-		BaseIntellionEntity.useConnection(this.connection);
+		this.connection = ConnectionManagerController.connectionManager.get(
+			this.connectionName
+		);
+		BaseIntellionEntity.useDataSource(this.connection);
 	}
 }
