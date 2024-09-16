@@ -1,4 +1,4 @@
-import { IConnection } from "src/types";
+import { IConnection } from "../types";
 import { DataSource } from "typeorm";
 
 export class ConnectionManager {
