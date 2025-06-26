@@ -1,6 +1,6 @@
 {
 	"name": "@intellion/logos",
-	"version": "2.0.1",
+	"version": "2.1.1",
 	"description": "",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
@@ -43,7 +43,7 @@
 		"dotenv": "^16.4.5",
 		"express": "^4.19.2",
 		"rimraf": "^3.0.2",
-		"typeorm": "^0.3.20"
+		"typeorm": "^0.3.25"
 	},
 	"devDependencies": {
 		"@types/expect": "^24.3.0",

@@ -2,6 +2,7 @@ import { BaseEntity } from "typeorm";
 import { BaseController, BaseDto } from "../controller";
 import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConnectionOptions";
 import { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
+import { SqlServerConnectionOptions } from "typeorm/driver/sqlserver/SqlServerConnectionOptions";
 
 export interface EntityType {
 	new (): BaseEntity;
@@ -53,7 +54,13 @@ export interface IMySqlConnection extends MysqlConnectionOptions {
 	entities: EntityType[];
 }
 
-export type IConnection = IPostgresConnection | IMySqlConnection;
+export interface IMsSqlConnection extends SqlServerConnectionOptions {
+	type: "mssql";
+	url: string;
+	entities: EntityType[];
+}
+
+export type IConnection = IPostgresConnection | IMySqlConnection | IMsSqlConnection;
 
 export type CrudMethodName = "get" | "post" | "patch" | "put" | "delete";
 
