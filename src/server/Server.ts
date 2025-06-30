@@ -10,6 +10,7 @@ import {
 	IPostgresConnection,
 	DtoList,
 	IMySqlConnection,
+	IMsSqlConnection,
 	IConnection
 } from "../types";
 import { ConnectionManagerController } from "./ConnectionManagerController";
@@ -90,6 +91,9 @@ export class Server extends Chain {
 		this._addConnectionHook(connectionName, dbConfig);
 
 	useMySql = (connectionName: string, dbConfig: IMySqlConnection) =>
+		this._addConnectionHook(connectionName, dbConfig);
+
+	useMsSql = (connectionName: string, dbConfig: IMsSqlConnection) =>
 		this._addConnectionHook(connectionName, dbConfig);
 
 	useMiddleware = (middleware: ((...args: any[]) => any)[]) => {
