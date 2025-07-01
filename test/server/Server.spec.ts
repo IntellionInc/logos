@@ -10,6 +10,7 @@ import { ConnectionManager } from "src/server/ConnectionManager";
 import {
 	ControllerList,
 	IMySqlConnection,
+	IMsSqlConnection,
 	IPostgresConnection,
 	IRoutes
 } from "src/types";
@@ -319,6 +320,28 @@ describe("Server: ", () => {
 
 			it("should set a before hook with '_createConnection'", () => {
 				const result = uut.useMySql(connectionName, dbConfig);
+				expect(uut._createConnection.bind).toHaveBeenCalledWith(
+					uut,
+					connectionName,
+					dbConfig
+				);
+				expect(uut.before).toHaveBeenCalledWith(boundCreateConnection);
+				expect(result).toBe(uut);
+			});
+		});
+
+		describe("useMsSql", () => {
+			const connectionName = "some-connection-name";
+			const dbConfig = { some: "config" } as unknown as IMsSqlConnection;
+			let boundCreateConnection: jest.Mock;
+
+			beforeEach(() => {
+				boundCreateConnection = jest.fn();
+				uut._createConnection.bind = jest.fn().mockReturnValue(boundCreateConnection);
+			});
+
+			it("should set a before hook with '_createConnection'", () => {
+				const result = uut.useMsSql(connectionName, dbConfig);
 				expect(uut._createConnection.bind).toHaveBeenCalledWith(
 					uut,
 					connectionName,
