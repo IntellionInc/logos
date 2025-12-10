@@ -15,7 +15,13 @@ export class Number extends IntellionType {
 	static hasSameTypeAs = (test: any) => typeof test === "number";
 	static definition = "a number";
 }
-
+export class Phone extends IntellionType {
+	static hasSameTypeAs = (test: any) => {
+		if (typeof test !== "string") return false;
+		return /^\+?[0-9]{7,15}$/.test(test);
+	};
+	static definition = "a phone number";
+}
 export class Boolean extends IntellionType {
 	static hasSameTypeAs = (test: any) => typeof test === "boolean";
 	static definition = "a boolean";
