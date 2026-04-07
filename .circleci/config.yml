@@ -1,3 +1,5 @@
+orbs:
+  qlty: qltysh/qlty-orb@0.0
 version: 2.1
 
 jobs:
@@ -32,18 +34,8 @@ jobs:
           name: Run coverage
           command: npm run test:cov:ci
           when: always
-      - run:
-          name: Setup Code Climate test-reporter
-          command: |
-            # download test reporter as a static binary
-            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-            chmod +x ./cc-test-reporter
-            ./cc-test-reporter before-build
-          when: always
-      - run:
-          name: Send coverage report to Code Climate
-          command: ./cc-test-reporter after-build -t lcov
-          when: always
+      - qlty/coverage_publish:
+          files: coverage/lcov.info
       - store_artifacts:
           path: ./coverage/lcov.info
           prefix: tests
