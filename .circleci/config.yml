@@ -1,14 +1,14 @@
+orbs:
+  qlty: qltysh/qlty-orb@0.0
 version: 2.1
 
 jobs:
   test:
     docker:
-      - image: cimg/node:20.17
+      - image: cimg/node:24.14.0
     steps:
       - checkout
       - restore_cache:
-          # See the configuration reference documentation for more details on using restore_cache and save_cache steps
-          # https://circleci.com/docs/2.0/configuration-reference/?section=reference#save_cache
           keys:
             - node-deps-v1-{{ .Branch }}-{{checksum "package-lock.json"}}
       - run:
@@ -32,18 +32,8 @@ jobs:
           name: Run coverage
           command: npm run test:cov:ci
           when: always
-      - run:
-          name: Setup Code Climate test-reporter
-          command: |
-            # download test reporter as a static binary
-            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-            chmod +x ./cc-test-reporter
-            ./cc-test-reporter before-build
-          when: always
-      - run:
-          name: Send coverage report to Code Climate
-          command: ./cc-test-reporter after-build -t lcov
-          when: always
+      - qlty/coverage_publish:
+          files: coverage/lcov.info
       - store_artifacts:
           path: ./coverage/lcov.info
           prefix: tests
