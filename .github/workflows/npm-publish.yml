@@ -35,10 +35,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24.x'
+          package-manager-cache: false
       - run: npm ci --ignore-scripts
-        env:
-          NPM_TOKEN: ${{secrets.npm_token}}
-      - run: npm run build
         env:
           NPM_TOKEN: ${{secrets.npm_token}}
       - run: npm publish # No NPM_TOKEN here - OIDC handles auth
