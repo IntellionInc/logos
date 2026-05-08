@@ -41,7 +41,5 @@ jobs:
       - run: npm run build
         env:
           NPM_TOKEN: ${{secrets.npm_token}}
-      - run: npm publish
-        env:
-          NPM_TOKEN: ${{secrets.npm_token}}
+      - run: npm publish # No NPM_TOKEN here - OIDC handles auth
       - run: npm rebuild && npm run prepare --if-present
