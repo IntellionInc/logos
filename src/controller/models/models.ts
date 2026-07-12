@@ -50,6 +50,11 @@ export class File extends IntellionType {
 	static definition = "a file";
 }
 
+export class Json extends IntellionType {
+	static hasSameTypeAs = (test: any) => typeof test === "object" && test !== null;
+	static definition = "a json object";
+}
+
 export const Enum = <T>(...args: T[]) =>
 	class Enum extends IntellionType {
 		static hasSameTypeAs = (test: any) => args.includes(test);
