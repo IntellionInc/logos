@@ -8,7 +8,8 @@ type TypeName =
 	| "Date"
 	| "Array"
 	| "Buffer"
-	| "File";
+	| "File"
+	| "Json";
 
 describe("IntellionType: ", () => {
 	beforeAll(() => {
@@ -98,6 +99,12 @@ const testedTypes = [
 		definition: "a file",
 		match: new File(["foo"], "a file"),
 		mismatch: 42244224
+	},
+	{
+		typeName: "Json",
+		definition: "a json object",
+		match: { key: "value" },
+		mismatch: "some-string"
 	}
 ];
 
